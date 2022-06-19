@@ -1,0 +1,428 @@
+class B{
+
+
+    public RestServiceResult update(RestServiceResult serviceResult, CoExercises2 coExercises2, String sDeliveryDate) {
+        CoExercises2DAO coExercises2DAO = new CoExercises2DAO();
+        Long nExerciseId = coExercises2.getExerciseId();
+        try {
+            EntityManagerHelper.beginTransaction();
+            coExercises2DAO.update(coExercises2);
+            EntityManagerHelper.commit();
+            EntityManagerHelper.refresh(coExercises2);
+            Object[] args = { coExercises2.getExerciseName() };
+            serviceResult.setMessage(MessageFormat.format(bundle.getString("exercises2.update.success"), args));
+            this.addDeliveryDate(nExerciseId, sDeliveryDate);
+        } catch (PersistenceException e) {
+            EntityManagerHelper.rollback();
+            log.error("Error al guardar el ejercicio s2: " + e.getMessage());
+            serviceResult.setError(true);
+            serviceResult.setMessage(MessageFormat.format(bundle.getString("exercises2.update.error"), e.getMessage()));
+        }
+        return serviceResult;
+    }
+
+    public RestServiceResult update(RestServiceResult serviceResult, ToGloss gloss) {
+        ToGlossDAO glossDAO = new ToGlossDAO();
+        try {
+            log.info("Actualizando la Glosa Explicativa: " + gloss.getGlossId());
+            EntityManagerHelper.beginTransaction();
+            glossDAO.update(gloss);
+            EntityManagerHelper.commit();
+            EntityManagerHelper.refresh(gloss);
+            Object[] arrayParam = { gloss.getGlossId() };
+            serviceResult.setMessage(MessageFormat.format(bundle.getString("singleText.update.success"), arrayParam));
+            log.info("Se actualizo la Glosa Explicativa con �xito: " + gloss.getGlossId());
+        } catch (PersistenceException e) {
+            EntityManagerHelper.rollback();
+            log.error("Error al actualizar la Glosa Explicativa: " + e.getMessage());
+            serviceResult.setError(true);
+            serviceResult.setMessage(e.getMessage());
+        }
+        return serviceResult;
+    }
+
+ public final void testDelay() {
+        int delay = 2000;
+        long startTime = System.currentTimeMillis();
+        robot.delay(delay);
+        long dTime = System.currentTimeMillis() - startTime;
+        assertTrue(dTime - delay < delay / 10);
+        try {
+            robot.delay(delay = 60001);
+        } catch (IllegalArgumentException iae) {
+            exceptionCaught = true;
+        }
+        assertTrue(exceptionCaught);
+        exceptionCaught = false;
+        try {
+            robot.delay(delay = -1);
+        } catch (IllegalArgumentException iae) {
+            exceptionCaught = true;
+        }
+        assertTrue(exceptionCaught);
+    }
+
+    public final void testSetAutoDelay() {
+        int delay = 2000;
+        robot.setAutoDelay(delay);
+        assertEquals(delay, robot.getAutoDelay());
+        try {
+            robot.setAutoDelay(-666);
+        } catch (IllegalArgumentException iae) {
+            exceptionCaught = true;
+        }
+        assertTrue(exceptionCaught);
+        assertEquals(delay, robot.getAutoDelay());
+        exceptionCaught = false;
+        try {
+            robot.setAutoDelay(66666);
+        } catch (IllegalArgumentException iae) {
+            exceptionCaught = true;
+        }
+        assertTrue(exceptionCaught);
+        assertEquals(delay, robot.getAutoDelay());
+    } 
+
+    @SuppressWarnings("unchecked")
+    private static void update(EntityManagerFactory entityManagerFactory) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        try {
+            entityManager.getTransaction().begin();
+            Query query = entityManager.createQuery("SELECT p FROM Person p");
+            Collection<Person> collection = (Collection<Person>) query.getResultList();
+            for (Person person : collection) {
+                if (person.getHomeState() == State.AZ) {
+                    person.setIncome(IncomeGroup.aboveaverage);
+                }
+            }
+            entityManager.getTransaction().commit();
+        } finally {
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
+            }
+            entityManager.close();
+        }
+    }
+
+    private static void delete(EntityManagerFactory entityManagerFactory) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        try {
+            entityManager.getTransaction().begin();
+            Query query = entityManager.createQuery("DELETE FROM Person p");
+            query.executeUpdate();
+            query = entityManager.createQuery("DELETE FROM Address a");
+            query.executeUpdate();
+            entityManager.getTransaction().commit();
+        } finally {
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
+            }
+            entityManager.close();
+        }
+    }
+
+   
+ @SuppressWarnings("unchecked")
+    private static void update(SessionFactory sessionFactory) {
+        Session session = sessionFactory.openSession();
+        try {
+            session.beginTransaction();
+            Query query = session.createQuery("FROM Person");
+            Collection<Person> list = (Collection<Person>) query.list();
+            for (Person person : list) {
+                person.setFirstName("Carl");
+                Address address = new Address();
+                address.setCity("Austin");
+                address.setStreet("Silver Avenue 21");
+                person.setAddress(address);
+            }
+            session.getTransaction().commit();
+        } finally {
+            if (session.getTransaction().isActive()) {
+                session.getTransaction().rollback();
+            }
+            session.close();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void shuffle(SessionFactory sessionFactory) {
+        Session session = sessionFactory.openSession();
+        try {
+            session.beginTransaction();
+            Query query = session.createQuery("FROM Person");
+            Collection<Person> list = (Collection<Person>) query.list();
+            Person person1 = list.iterator().next();
+            Person person2 = new Person();
+            person2.setFirstName("William");
+            person2.setLastName("Bush");
+            Address address = person1.getAddresses().iterator().next();
+            person1.getAddresses().remove(address);
+            person2.getAddresses().add(address);
+            session.save(person2);
+            session.getTransaction().commit();
+        } finally {
+            if (session.getTransaction().isActive()) {
+                session.getTransaction().rollback();
+            }
+            session.close();
+        }
+    }
+
+    private static void insert(EntityManagerFactory entityManagerFactory) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        try {
+            entityManager.getTransaction().begin();
+            Person person = new Person();
+            person.setName("Jesse James");
+            person.setSize(Length.create(180, LengthUnit.cm));
+            person.setHipSize(Length.create(80, LengthUnit.cm));
+            entityManager.persist(person);
+            entityManager.getTransaction().commit();
+        } finally {
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
+            }
+            entityManager.close();
+        }
+    }
+
+    private static void insert(EntityManagerFactory entityManagerFactory) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        try {
+            entityManager.getTransaction().begin();
+            Person person = new Person();
+            person.setFirstName("Jesse");
+            person.setLastName("James");
+            PhysicalTraits traits = new PhysicalTraits();
+            traits.setBodyHeight(new Length(new BigDecimal("180"), Length.Unit.cm));
+            traits.setBodyWeight(new Weight(new BigDecimal("75"), Weight.Unit.kg));
+            person.setTraits(traits);
+            entityManager.persist(person);
+            entityManager.getTransaction().commit();
+        } finally {
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
+            }
+            entityManager.close();
+        }
+    }
+
+    @Test
+    public void test70() throws Exception {
+        String data = "\"1\",Bruce\r\n\"2\",Toni\r\n\"3\",Brian\r\n";
+        CsvReader reader = CsvReader.parse(data);
+        reader.setHeaders(new String[] { "userid", "name" });
+        Assert.assertEquals(2, reader.getHeaderCount());
+        Assert.assertTrue(reader.readRecord());
+        Assert.assertEquals("1", reader.get("userid"));
+        Assert.assertEquals("Bruce", reader.get("name"));
+        Assert.assertEquals(0L, reader.getCurrentRecord());
+        Assert.assertEquals(2, reader.getColumnCount());
+        Assert.assertTrue(reader.readRecord());
+        Assert.assertEquals("2", reader.get("userid"));
+        Assert.assertEquals("Toni", reader.get("name"));
+        Assert.assertEquals(1L, reader.getCurrentRecord());
+        Assert.assertEquals(2, reader.getColumnCount());
+        Assert.assertTrue(reader.readRecord());
+        Assert.assertEquals("3", reader.get("userid"));
+        Assert.assertEquals("Brian", reader.get("name"));
+        Assert.assertEquals(2L, reader.getCurrentRecord());
+        Assert.assertEquals(2, reader.getColumnCount());
+        Assert.assertFalse(reader.readRecord());
+        reader.close();
+    }
+
+    @Test
+    public void test14() throws Exception {
+        String data = "user_id,name\r\n1,Bruce";
+        CsvReader reader = CsvReader.parse(data);
+        Assert.assertTrue(reader.readHeaders());
+        Assert.assertEquals("user_id,name", reader.getRawRecord());
+        Assert.assertTrue(reader.readRecord());
+        Assert.assertEquals("1", reader.get(0));
+        Assert.assertEquals("Bruce", reader.get(1));
+        Assert.assertEquals(0L, reader.getCurrentRecord());
+        Assert.assertEquals(2, reader.getColumnCount());
+        Assert.assertEquals(0, reader.getIndex("user_id"));
+        Assert.assertEquals(1, reader.getIndex("name"));
+        Assert.assertEquals("user_id", reader.getHeader(0));
+        Assert.assertEquals("name", reader.getHeader(1));
+        Assert.assertEquals("1", reader.get("user_id"));
+        Assert.assertEquals("Bruce", reader.get("name"));
+        Assert.assertEquals("1,Bruce", reader.getRawRecord());
+        Assert.assertFalse(reader.readRecord());
+        reader.close();
+    }
+
+    @Test
+    public void test73() throws Exception {
+        byte[] buffer;
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        CsvWriter writer = new CsvWriter(stream, ',', Charset.forName("ISO-8859-1"));
+        Assert.assertEquals(CsvWriter.ESCAPE_MODE_DOUBLED, writer.getEscapeMode());
+        writer.setEscapeMode(CsvWriter.ESCAPE_MODE_BACKSLASH);
+        Assert.assertEquals(CsvWriter.ESCAPE_MODE_BACKSLASH, writer.getEscapeMode());
+        writer.write("1,2");
+        writer.write("3");
+        writer.write("blah \"some stuff in quotes\"");
+        writer.endRecord();
+        writer.setForceQualifier(true);
+        writer.write("1,2");
+        writer.write("3");
+        writer.write("blah \"some stuff in quotes\"");
+        writer.close();
+        buffer = stream.toByteArray();
+        stream.close();
+        String data = Charset.forName("ISO-8859-1").decode(ByteBuffer.wrap(buffer)).toString();
+        Assert.assertEquals("\"1,2\",3,\"blah \\\"some stuff in quotes\\\"\"\r\n\"1,2\",\"3\",\"blah \\\"some stuff in quotes\\\"\"", data);
+    }
+
+    @Test
+    public void test118() throws Exception {
+        byte[] buffer;
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        CsvWriter writer = new CsvWriter(stream, '\t', Charset.forName("ISO-8859-1"));
+        Assert.assertEquals('\"', writer.getTextQualifier());
+        writer.setTextQualifier('\'');
+        Assert.assertEquals('\'', writer.getTextQualifier());
+        writer.write("1,2");
+        writer.write("3");
+        writer.write("blah \"some stuff in quotes\"");
+        writer.write("blah \'some stuff in quotes\'");
+        writer.endRecord();
+        writer.close();
+        buffer = stream.toByteArray();
+        stream.close();
+        String data = Charset.forName("ISO-8859-1").decode(ByteBuffer.wrap(buffer)).toString();
+        Assert.assertEquals("1,2\t3\tblah \"some stuff in quotes\"\t\'blah \'\'some stuff in quotes\'\'\'\r\n", data);
+    }
+
+    private static void insert(EntityManagerFactory entityManagerFactory) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        try {
+            entityManager.getTransaction().begin();
+            Person person = new Person();
+            person.setFirstName("Jesse");
+            person.setLastName("James");
+            entityManager.persist(person);
+            entityManager.getTransaction().commit();
+        } finally {
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
+            }
+            entityManager.close();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void update(EntityManagerFactory entityManagerFactory) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        try {
+            entityManager.getTransaction().begin();
+            Query query = entityManager.createQuery("SELECT p FROM Person p");
+            Collection<Person> collection = (Collection<Person>) query.getResultList();
+            for (Person person : collection) {
+                person.setFirstName("Carl");
+                Address address = new Address();
+                address.setCity("Austin");
+                address.setStreet("Silver Avenue 21");
+                person.setAddress(address);
+            }
+            entityManager.getTransaction().commit();
+        } finally {
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
+            }
+            entityManager.close();
+        }
+    }
+   @SuppressWarnings("unchecked")
+    private static void update(EntityManagerFactory entityManagerFactory) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        try {
+            entityManager.getTransaction().begin();
+            Query query = entityManager.createQuery("SELECT p FROM Person p");
+            Collection<Person> collection = (Collection<Person>) query.getResultList();
+            for (Person person : collection) {
+                person.setFirstName("Carl");
+                Address address = new Address();
+                address.setCity("Austin");
+                address.setStreet("Silver Avenue 21");
+                person.setAddress(address);
+            }
+            entityManager.getTransaction().commit();
+        } finally {
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
+            }
+            entityManager.close();
+        }
+    }
+
+    private static void insert(EntityManagerFactory entityManagerFactory) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        try {
+            entityManager.getTransaction().begin();
+            Person person = new Person();
+            person.setFirstName("Jesse");
+            person.setLastName("James");
+            PhysicalTraits traits = new PhysicalTraits();
+            traits.setBodyHeight(new Length(new BigDecimal("180"), Length.Unit.cm));
+            traits.setBodyWeight(new Weight(new BigDecimal("75"), Weight.Unit.kg));
+            person.setTraits(traits);
+            entityManager.persist(person);
+            entityManager.getTransaction().commit();
+        } finally {
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
+            }
+            entityManager.close();
+        }
+    }
+
+      @SuppressWarnings("unchecked")
+    private static void update(EntityManagerFactory entityManagerFactory) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        try {
+            entityManager.getTransaction().begin();
+            Query query = entityManager.createQuery("SELECT p FROM Person p");
+            Collection<Person> collection = (Collection<Person>) query.getResultList();
+            for (Person person : collection) {
+                person.setFirstName("Carl");
+                Address address = new Address();
+                address.setCity("Austin");
+                address.setStreet("Silver Avenue 21");
+                person.setAddress(address);
+            }
+            entityManager.getTransaction().commit();
+        } finally {
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
+            }
+            entityManager.close();
+        }
+    }
+
+    private static void insert(EntityManagerFactory entityManagerFactory) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        try {
+            entityManager.getTransaction().begin();
+            Person person = new Person();
+            person.setFirstName("Jesse");
+            person.setLastName("James");
+            PhysicalTraits traits = new PhysicalTraits();
+            traits.setBodyHeight(new Length(new BigDecimal("180"), Length.Unit.cm));
+            traits.setBodyWeight(new Weight(new BigDecimal("75"), Weight.Unit.kg));
+            person.setTraits(traits);
+            entityManager.persist(person);
+            entityManager.getTransaction().commit();
+        } finally {
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
+            }
+            entityManager.close();
+        }
+    }
+
+}
