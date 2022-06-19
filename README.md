@@ -1,6 +1,6 @@
 # StoneDetector - Finding Structural Clones and Subclones in Java Source Code
 
-If you just want to try StoneDetector, you can also visit the tool website: [stonedetector.fmi.uni-jena.de](stonedetector.fmi.uni-jena.de).
+If you just want to try StoneDetector, you can also visit the tool website: [stonedetector.fmi.uni-jena.de](https://stonedetector.fmi.uni-jena.de).
 
 ### Run StoneDetector
 * Adjust the configuration file under config
