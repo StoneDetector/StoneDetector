@@ -1,0 +1,34 @@
+apply plugin: 'application'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
+    compile group: 'org.apache.commons', name: 'commons-configuration2', version: '2.7'
+    compile group: 'commons-beanutils', name: 'commons-beanutils', version: '1.9.3'
+    compile "org.slf4j:slf4j-simple:1.7.9" 
+    compile group: 'fr.inria.gforge.spoon', name: 'spoon-core', version: '8.2.0'
+    compile group: 'org.jgrapht', name: 'jgrapht-ext', version:'0.9.0'
+}
+
+if (project.hasProperty('mainClass')) {
+    mainClassName = project.getProperty('mainClass')
+} else {
+    // use a default
+    mainClassName = 'org.dlr.foobar.SpoonDriver'
+}
+
+jar {
+    manifest.attributes(
+        'Multi-Release': 'true'
+    )
+    doFirst {
+        from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
+    manifest {
+        attributes 'Main-Class': 'org.dlr.foobar.SpoonBigCloneBenchDriver'
+    }
+}
