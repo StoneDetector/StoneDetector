@@ -18,8 +18,28 @@ java -Xms4G -Xmx4G  -jar build/libs/StoneDetector.jar -x --directory="path/to/Ja
 ### StoneDetector with BigCloneEval
  Use BCE_runner as tool runner script for BigCloneEval.
 
-### I want to know more
-That's great. Our [ICSME'21](https://www.computer.org/csdl/proceedings-article/icsme/2021/288200a070/1yNh4Mp9yE0) paper is a good introduction to the technology behind StoneDetector. Don't hesitate to contact us if you have any questions.
+## Docker Image
+
+The StoneDetector tool is available as Docker image. Get started with Docker [here](https://docs.docker.com/get-started/) and follow our tutorial on how to use it:
+
+You can create the image on your own, using the [Dockerfile](Dockerfile) which comes with this repository:
+```
+docker build -t stonedetector .
+```
+or use its prebuilt version [here](https://hub.docker.com/r/stonedetector/stonedetector) (though be aware of its size: 1.59GB):
+```
+docker pull stonedetector/stonedetector
+```
+
+blabla
+
+```
+docker run -itd --name stonedetector stonedetector /bin/bash
+docker exec -it stonedetector /bin/bash
+```
+
+## I want to know more
+That's great. Our [ICSME'21](https://www.computer.org/csdl/proceedings-article/icsme/2021/288200a070/1yNh4Mp9yE0) paper is a good introduction into the technology behind StoneDetector. Don't hesitate to contact us if you have any questions.
 
 
 Here are links to the [Spoon](https://github.com/INRIA/spoon) and [WALA](https://github.com/wala/WALA) projects.
