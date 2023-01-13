@@ -1,8 +1,5 @@
 FROM gradle:6.3.0-jdk11 AS build
 
-RUN apt update
-RUN apt install -y make
-
 COPY --chown=gradle:gradle . /home/gradle/src
 
 WORKDIR /home/gradle/src
@@ -13,7 +10,9 @@ RUN wget https://gitlab.com/t.heinze/bigcloneevaldata/-/raw/main/BigCloneBench_B
 RUN wget https://gitlab.com/t.heinze/bigcloneevaldata/-/raw/main/IJaDataset_BCEvalVersion.tar.gz
 
 WORKDIR /home/gradle/src/BigCloneEval
-RUN make
+RUN cp src/util/Version.java.template src/util/Version.java
+RUN mkdir -p bin/
+RUN javac -d bin/ -cp src/:libs/* src/**/*.java
 
 FROM openjdk:11-jre-slim
 
@@ -42,3 +41,6 @@ WORKDIR /StoneDetector/BigCloneEval/commands
 RUN ./init
 
 WORKDIR /StoneDetector
+RUN chmod +x run.sh
+RUN chmod +x run_benchmark.sh
+RUN chmod +x BCE_runner
