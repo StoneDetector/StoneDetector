@@ -20,13 +20,13 @@ java -Xms4G -Xmx4G  -jar build/libs/StoneDetector.jar -x --directory="path/to/Ja
 
 ## Docker Image
 
-The StoneDetector tool is available as Docker image. Get started with Docker [here](https://docs.docker.com/get-started/) and follow our tutorial on how to use it:
+The StoneDetector tool is available as [Docker image](https://hub.docker.com/r/stonedetector/stonedetector). Get started with Docker [here](https://docs.docker.com/get-started/) and follow the following tutorial on how to use it.
 
 You can create the image on your own, using the [Dockerfile](Dockerfile) which comes with this repository:
 ```
 docker build -t stonedetector .
 ```
-or use its prebuilt version [here](https://hub.docker.com/r/stonedetector/stonedetector) (though be aware of its size: 1.59GB):
+or use its prebuilt version  (though be aware of its size: 1.59GB):
 ```
 docker pull stonedetector/stonedetector
 ```
@@ -36,6 +36,7 @@ blabla
 ```
 docker run -itd --name stonedetector stonedetector /bin/bash
 docker exec -it stonedetector /bin/bash
+./run.sh test
 ```
 
 ## I want to know more
