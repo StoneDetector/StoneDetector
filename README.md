@@ -38,6 +38,28 @@ docker run -itd --name stonedetector stonedetector /bin/bash
 docker exec -it stonedetector /bin/bash
 ./run.sh test
 ```
+Describe the output of the tool
+
+Describe how to reproduce the benchmark
+
+Also describe how to mount another directory into the
+container and run the clone analysis on this directory
+
+## Playing with the implementation
+The entry point of ..., which is invoked when issuing any command starting with pub run ... is located at bin/dart. The driver that executes the static analysis, and iteratively executes the hybrid dynamic/static analysis is lib/dart (more specifically the method analyze()).
+
+The StoneDetector implementation consists of four main components.
+
+Instrumentation framework for the dynamic analysis
+See libs/.
+
+Control flow graph construction
+See flow/ and in particular /lib/src/cfg/.
+
+Static call graph construction, data flow and dependence analysis
+See flow/.
+
+also add information on configuration and configuration parameters ... and tutorial on how to built the system and run the benchmark
 
 ## I want to know more
 That's great. Our [ICSME'21](https://www.computer.org/csdl/proceedings-article/icsme/2021/288200a070/1yNh4Mp9yE0) paper is a good introduction into the technology behind StoneDetector. Don't hesitate to contact us if you have any questions.
