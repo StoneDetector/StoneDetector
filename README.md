@@ -1,6 +1,6 @@
 # StoneDetector - Finding Structural Clones and Subclones in Java Source Code
 
-If you just want to try StoneDetector, you can also visit the tool website: [stonedetector.fmi.uni-jena.de](https://stonedetector.fmi.uni-jena.de).
+If you just want to try StoneDetector, you can also have a look at the tool's interactive website: [stonedetector.fmi.uni-jena.de](https://stonedetector.fmi.uni-jena.de).
 
 ### Run StoneDetector
 * Adjust the configuration file under config
@@ -30,14 +30,21 @@ or use its prebuilt version  (though be aware of its size: 1.59GB):
 ```
 docker pull stonedetector/stonedetector
 ```
-
-blabla
-
+Note that you may need to execute the docker commands using sudo privileges (i.e., `sudo docker`). Having pulled or generated the docker image, create a new container:
 ```
 docker run -itd --name stonedetector stonedetector /bin/bash
+```
+Aferwards, attach to a bash shell in the container:
+```
 docker exec -it stonedetector /bin/bash
+```
+Inside the container, you can run StoneDetector. Clone
+```
 ./run.sh test
 ```
+StoneDetector will print all detected code clones onto the screen, where each line specifies a single clone pair using the format `directory,filename,startline,endline,directory,filename,endline`. Where cf#_subdirectory,cf#_filename,cf#_startline,cf#_endline specifies one of the code fragments. And the order of the code fragments in the clone pair does not matter.
+For example, `selected,102353.java,10,20,default,356923.java,20,30` denotes the clone pair 
+
 Describe the output of the tool
 
 Describe how to reproduce the benchmark
@@ -62,9 +69,12 @@ See flow/.
 also add information on configuration and configuration parameters ... and tutorial on how to built the system and run the benchmark
 
 ## I want to know more
-That's great. Our [ICSME'21](https://www.computer.org/csdl/proceedings-article/icsme/2021/288200a070/1yNh4Mp9yE0) paper is a good introduction into the technology behind StoneDetector. Don't hesitate to contact us if you have any questions.
 
+That's great. Our [ICSME'21](https://www.computer.org/csdl/proceedings-article/icsme/2021/288200a070/1yNh4Mp9yE0) paper and presentation on [YouTube](https://youtu.be/GirClq1CA8w) is a good introduction into the technology behind StoneDetector. Don't hesitate to contact us if you have any questions:
+ * Wolfram Amme: Wolfram.Amme@uni-jena.de 
+ * André Schäfer: Andre.Schaefer@uni-jena.de 
+ * Thomas Heinze: Thomas.Heinze@dhge.de 
 
-Here are links to the [Spoon](https://github.com/INRIA/spoon) and [WALA](https://github.com/wala/WALA) projects.
+Here are links to the [Spoon](https://github.com/INRIA/spoon) and [WALA](https://github.com/wala/WALA) projects, which StoneDetector has been built upon.
 
-Unfortunately, the code has not been cleaned yet, though we are aiming to do so in the near future.
+Unfortunately, StoneDetector's code has not been cleaned up yet, though, we are planning to do so in the near future ...
