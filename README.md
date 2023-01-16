@@ -8,7 +8,7 @@ If you just want to try out StoneDetector, you can also have a look at the tool'
 ```
 ./gradlew jar
 ```
-* Run StoneDetector
+* Run StoneDetector (requires at least JRE11)
 ```
 java -Xms8G -Xmx8G -jar build/libs/StoneDetector.jar -x --directory="path/to/Java/Folder" --error-file=errors.txt 
 ```
@@ -75,6 +75,14 @@ The StoneDetector tool provides various configuration parameters, which allow yo
 | USMD5 | false |Switch between MD5 or 4-byte prime number hash encoding for description sets | 
 | USEFUNCTIONNAMES | true |Whether or not method names are kept in description sets or normalized |
 | OUTPUT | true |Whether or not detected clone pairs are printed to the screen |
+
+### Building
+
+StoneDetector is written in Java and can be built using [Gradle](https://gradle.org). StoneDetector requires at least Java 11. We recommend using StoneDetector with Java JDK11 and Gradle 6.0.3. To build the tool, simply run:
+```
+./gradlew jar
+```
+in the projects top-level directory, which will generate the JAR file `build/libs/StoneDetector.jar`. This file can then be used to run the tool (see above).
 
 ## Playing with the implementation
 
