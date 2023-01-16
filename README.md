@@ -21,7 +21,7 @@ The StoneDetector tool is available as [Docker image](https://hub.docker.com/r/s
 
 You can create the image on your own, using the [Dockerfile](Dockerfile) which comes with this repository:
 ```
-docker build -t stonedetector .
+docker build -t stonedetector/stonedetector .
 ```
 or use its prebuilt version  (though be aware of its size: 1.59GB):
 ```
@@ -29,7 +29,7 @@ docker pull stonedetector/stonedetector
 ```
 Note that you may need to execute the docker commands using sudo privileges (i.e., `sudo docker`). Having pulled or generated the docker image, create a new container:
 ```
-docker run -itd --name stonedetector stonedetector /bin/bash
+docker run -itd --name stonedetector stonedetector/stonedetector /bin/bash
 ```
 Aferwards, attach to a bash shell in the container:
 ```
@@ -43,6 +43,14 @@ which will result in the following output denoting the clone pair in file `Examp
 ```
 test,Example.java,4,18,test,Example.java,19,33
 ```
+If you want to run StoneDetector on your own files, just mount a local directory when creating the container and proceed
+as described above, e.g.:
+```
+docker run -itd -v path/to/Java/Folder:/stonedetector/javafiles --name stonedetector stonedetector/stonedetector /bin/bash
+docker exec -it stonedetector /bin/bash
+./run.sh javafiles
+```
+
 You can also replicate StoneDetector's results on the [BigCloneEval](https://github.com/jeffsvajlenko/BigCloneEval) benchmark:
 ```
 ./run.sh run_benchmark.sh
