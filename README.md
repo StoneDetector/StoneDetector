@@ -39,7 +39,7 @@ Inside the container, you can run StoneDetector on a directory, which will ident
 ```
 ./run.sh test
 ```
-which will result in the following output denoting the clone pair in file `Example.java in the `test` directory:
+which will result in the following output denoting the clone pair in file `Example.java` in the `test` directory:
 ```
 test,Example.java,4,18,test,Example.java,19,33
 ```
