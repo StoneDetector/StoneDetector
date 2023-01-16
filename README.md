@@ -78,7 +78,7 @@ The StoneDetector tool provides various configuration parameters, which allow yo
 
 ### Building
 
-StoneDetector is written in Java and can be built using [Gradle](https://gradle.org). StoneDetector requires at least Java 11. We recommend using StoneDetector with Java JDK11 and Gradle 6.0.3. To build the tool, simply run:
+StoneDetector is written in Java and can be built using [Gradle](https://gradle.org). StoneDetector requires at least Java 11. We recommend using StoneDetector with Java JDK11 and Gradle 6.3.0. To build the tool, simply run:
 ```
 ./gradlew jar
 ```
