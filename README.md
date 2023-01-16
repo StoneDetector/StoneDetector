@@ -2,21 +2,18 @@
 
 If you just want to try StoneDetector, you can also have a look at the tool's interactive website: [stonedetector.fmi.uni-jena.de](https://stonedetector.fmi.uni-jena.de).
 
-### Run StoneDetector
-* Adjust the configuration file under config
-
-* Compile StoneDetector ( Java 11 )
+## StoneDetector Quick Start
+* Adjust StoneDetector's configuration file under `config/default.properties`
+* Build StoneDetector (requires at least JDK11)
 ```
 ./gradlew jar
 ```
-
 * Run StoneDetector
 ```
-java -Xms4G -Xmx4G  -jar build/libs/StoneDetector.jar -x --directory="path/to/Java/Folder" --error-file=errors.txt 
+java -Xms8G -Xmx8G -jar build/libs/StoneDetector.jar -x --directory="path/to/Java/Folder" --error-file=errors.txt 
 ```
-
-### StoneDetector with BigCloneEval
- Use BCE_runner as tool runner script for BigCloneEval.
+* StoneDetector with [BigCloneEval](https://github.com/jeffsvajlenko/BigCloneEval):
+ Use `BCE_runner` as tool runner script
 
 ## Docker Image
 
@@ -54,7 +51,11 @@ Note that the latter requires quite some time due to the benchmark's size and de
 
 ## How to use StoneDetector
 
-For convenience reasons, we also provide the shell script `run.sh` for running StoneDetector on a directory, given by the script's argument. StoneDetector will identify all code clones in Java source code files contained in the directory.
+For convenience reasons, we provide the shell script `run.sh` for running StoneDetector on a directory, given by the script's argument. StoneDetector will identify all code clones in Java source code files contained in the directory. You may also explicitly run the StoneDetector using the command:
+```
+java -Xms8G -Xmx8G  -jar build/libs/StoneDetector.jar -x --directory="path/to/Java/Folder" --error-file=errors.txt 
+```
+where StoneDetector will look for code clones in directory `path/to/Java/Folder` and you are able to specifically configure the tool's JVM heap size, error logging, etc.
 
 ### Output format
 
