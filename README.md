@@ -20,7 +20,7 @@ java -Xms4G -Xmx4G  -jar build/libs/StoneDetector.jar -x --directory="path/to/Ja
 
 ## Docker Image
 
-The StoneDetector tool is available as [Docker image](https://hub.docker.com/r/stonedetector/stonedetector). Get started with Docker [here](https://docs.docker.com/get-started/) and follow the following tutorial on how to use it.
+The StoneDetector tool is also available as [Docker image](https://hub.docker.com/r/stonedetector/stonedetector). Get started with Docker [here](https://docs.docker.com/get-started/) and follow the following tutorial on how to use it.
 
 You can create the image on your own, using the [Dockerfile](Dockerfile) which comes with this repository:
 ```
@@ -54,17 +54,11 @@ Note that the latter requires quite some time due to the benchmark's size and de
 
 ## How to use StoneDetector
 
-For convenience reasons, we also provide a shell script for running StoneDetector on a single directory.
+For convenience reasons, we also provide the shell script `run.sh` for running StoneDetector on a directory, given by the script's argument. StoneDetector will identify all code clones in Java source code files contained in the directory.
 
-StoneDetector will print all detected code clones onto the screen, where each line specifies a single clone pair using the format `directory,filename,startline,endline,directory,filename,endline`. Where cf#_subdirectory,cf#_filename,cf#_startline,cf#_endline specifies one of the code fragments. And the order of the code fragments in the clone pair does not matter.
-For example, `selected,102353.java,10,20,default,356923.java,20,30` denotes the clone pair 
+### Output format
 
-Describe the output of the tool
-
-Describe how to reproduce the benchmark
-
-Also describe how to mount another directory into the
-container and run the clone analysis on this directory
+StoneDetector prints detected code clones onto the screen. Each line specifies a single clone pair using the format `directory1,filename1,startline1,endline1,directory2,filename2,startline2,endline2`, where `directory1,filename1,startline1,endline1` specifies the location of theone code fragment and `directory2,filename2,startline2,endline2` specifies the location of the other code fragment forming the clone pair. Note that the order of the code fragments in the clone pair is not significant. For example, `test,F.java,5,24,test,F.java,27,46` denotes the clone pair which is formed by the two code fragments from line 5 to line 24 and from line 27 to line 46, respectively, of file `test/F.java`.
 
 ## Playing with the implementation
 The entry point of ..., which is invoked when issuing any command starting with pub run ... is located at bin/dart. The driver that executes the static analysis, and iteratively executes the hybrid dynamic/static analysis is lib/dart (more specifically the method analyze()).
