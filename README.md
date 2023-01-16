@@ -90,5 +90,3 @@ That's great. Our [ICSME'21](https://www.computer.org/csdl/proceedings-article/i
  * Thomas Heinze: Thomas.Heinze@dhge.de 
 
 Here are links to the [Spoon](https://github.com/INRIA/spoon) and [WALA](https://github.com/wala/WALA) projects, which StoneDetector has been built upon.
-
-Unfortunately, StoneDetector's code has not been cleaned up yet, though, we are planning to do so in the near future ...
