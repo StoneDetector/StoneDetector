@@ -46,7 +46,7 @@ test,Example.java,4,18,test,Example.java,19,33
 If you want to run StoneDetector on your own files, just mount a local directory when creating the container and proceed
 as described above, e.g.:
 ```
-docker run -itd -v path/to/Java/Folder:/stonedetector/javafiles --name stonedetector stonedetector/stonedetector /bin/bash
+docker run -itd -v path/to/Java/Folder:/StoneDetector/javafiles --name stonedetector stonedetector/stonedetector /bin/bash
 docker exec -it stonedetector /bin/bash
 ./run.sh javafiles
 ```
