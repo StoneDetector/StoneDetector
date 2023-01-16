@@ -83,7 +83,7 @@ Further configuration parameters of the tool are defined in its implementation, 
 The StoneDetector implementation consists of four main components:
  * Java source code parser and control flow graph generation based upon [Spoon](https://github.com/INRIA/spoon): See [SpoonBigCloneBenchDriver.java](src/main/java/org/dlr/foobar/SpoonBigCloneBenchDriver.java)
  * Dominator tree construction based upon [WALA](https://github.com/wala/WALA): See [DominatorTree.java](src/main/java/org/fsu/codeclones/DominatorTree.java)
- * Description sets encoding: See [Encoder.java](src/main/java/org/fsu/codeclones/Encoder.java),[HashEncoder.java](src/main/java/org/fsu/codeclones/HashEncoder.java),  and in particular[CompletePathEncoder.java](src/main/java/org/fsu/codeclones/CompletePathEncoder.java)
+ * Description sets encoding: See [Encoder.java](src/main/java/org/fsu/codeclones/Encoder.java), [HashEncoder.java](src/main/java/org/fsu/codeclones/HashEncoder.java),  and in particular[CompletePathEncoder.java](src/main/java/org/fsu/codeclones/CompletePathEncoder.java)
  * Metrics implementation: See [LCS.java](src/main/java/org/fsu/codeclones/LCS.java), [HammingDistance.java](src/main/java/org/fsu/codeclones/HammingDistance.java), [LevenShtein.java](src/main/java/org/fsu/codeclones/LevenShtein.java), etc.
 
 ## I want to know more
