@@ -39,9 +39,9 @@ Inside the container, you can run StoneDetector on a directory, which will ident
 ```
 ./run.sh test
 ```
-which will result in the following output denoting the clone pair in file `F.java` in the `test` directory:
+which will result in the following output denoting the clone pair in file `Example.java in the `test` directory:
 ```
-test,F.java,5,24,test,F.java,27,46
+test,Example.java,4,18,test,Example.java,19,33
 ```
 You can also replicate StoneDetector's results on the [BigCloneEval](https://github.com/jeffsvajlenko/BigCloneEval) benchmark:
 ```
@@ -59,7 +59,8 @@ where StoneDetector will look for code clones in directory `path/to/Java/Folder`
 
 ### Output format
 
-StoneDetector prints detected code clones by default onto the screen. Each line specifies a single clone pair using the format `directory1,filename1,startline1,endline1,directory2,filename2,startline2,endline2`, where `directory1,filename1,startline1,endline1` specifies the location of the one code fragment and `directory2,filename2,startline2,endline2` specifies the location of the other code fragment. Note that the order of the code fragments in the clone pair is not significant. For example, `test,F.java,5,24,test,F.java,27,46` denotes the clone pair which is formed by the two code fragments between lines 5 to 24 and lines 27 to 46, respectively, in file `test/F.java`.
+StoneDetector prints detected code clones by default onto the screen. Each line specifies a single clone pair using the format `directory1,filename1,startline1,endline1,directory2,filename2,startline2,endline2`, where `directory1,filename1,startline1,endline1` specifies the location of the one code fragment and `directory2,filename2,startline2,endline2` specifies the location of the other code fragment. Note that the order of the code fragments in the clone pair is not significant.
+For example, `test,Example.java,4,18,test,Example.java,19,33` denotes the clone pair which is formed by the two code fragments between lines 4 to 18 and lines 19 to 33, respectively, in file `test/Example.java`.
 
 ### Configuration
 

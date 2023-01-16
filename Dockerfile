@@ -23,7 +23,7 @@ RUN mkdir /StoneDetector/build
 RUN mkdir /StoneDetector/build/libs
 COPY --from=build /home/gradle/src/BigCloneEval /StoneDetector/BigCloneEval
 COPY --from=build /home/gradle/src/build/libs/*.jar /StoneDetector/build/libs/StoneDetector.jar
-COPY --from=build /home/gradle/src/test/F.java /StoneDetector/test/F.java
+COPY --from=build /home/gradle/src/test/Example.java /StoneDetector/test/Example.java
 COPY --from=build /home/gradle/src/config/default.properties /StoneDetector/config/default.properties
 COPY --from=build /home/gradle/src/errors.txt /StoneDetector/errors.txt
 COPY --from=build /home/gradle/src/README.md /StoneDetector/README.md
