@@ -38,10 +38,24 @@ Aferwards, attach to a bash shell in the container:
 ```
 docker exec -it stonedetector /bin/bash
 ```
-Inside the container, you can run StoneDetector. Clone
+Inside the container, you can run StoneDetector on a directory, which will identify code clones in Java source code files contained, e.g., in directory `test`:
 ```
 ./run.sh test
 ```
+which will result in the following output denoting the clone pair in file `F.java` in the `test` directory:
+```
+test,F.java,5,24,test,F.java,27,46
+```
+You can also replicate StoneDetector's results on the [BigCloneEval](https://github.com/jeffsvajlenko/BigCloneEval) benchmark:
+```
+./run.sh run_benchmark.sh
+```
+Note that the latter requires quite some time due to the benchmark's size and depending on your configuration. The results will be written into the tool evaluation report named `BigCloneEval_Report.txt`. For more information about the report or the benchmark, we refer to [BigCloneEval](https://github.com/jeffsvajlenko/BigCloneEval).
+
+## How to use StoneDetector
+
+For convenience reasons, we also provide a shell script for running StoneDetector on a single directory.
+
 StoneDetector will print all detected code clones onto the screen, where each line specifies a single clone pair using the format `directory,filename,startline,endline,directory,filename,endline`. Where cf#_subdirectory,cf#_filename,cf#_startline,cf#_endline specifies one of the code fragments. And the order of the code fragments in the clone pair does not matter.
 For example, `selected,102353.java,10,20,default,356923.java,20,30` denotes the clone pair 
 
