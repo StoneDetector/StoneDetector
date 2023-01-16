@@ -50,7 +50,7 @@ You can also replicate StoneDetector's results on the [BigCloneEval](https://git
 ```
 ./run.sh run_benchmark.sh
 ```
-Note that the latter requires quite some time due to the benchmark's size and depending on your configuration. The results will be written into the tool evaluation report named `BigCloneEval_Report.txt`. For more information about the report or the benchmark, we refer to [BigCloneEval](https://github.com/jeffsvajlenko/BigCloneEval).
+Note that the latter requires quite some time due to the benchmark's size and depending on your configuration. The results will be written into the tool evaluation report named `BigCloneEval_Report.txt`. For more information about the report's format or the benchmark, we refer to [BigCloneEval](https://github.com/jeffsvajlenko/BigCloneEval).
 
 ## How to use StoneDetector
 
