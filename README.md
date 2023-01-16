@@ -17,7 +17,7 @@ java -Xms8G -Xmx8G -jar build/libs/StoneDetector.jar -x --directory="path/to/Jav
 
 ## Docker Image
 
-The StoneDetector tool is also available as [Docker image](https://hub.docker.com/r/stonedetector/stonedetector). Get started with Docker [here](https://docs.docker.com/get-started/) and follow the following tutorial on how to use it.
+The StoneDetector tool is available as [Docker image](https://hub.docker.com/r/stonedetector/stonedetector). Get started with Docker [here](https://docs.docker.com/get-started/) and follow the following tutorial on how to use it.
 
 You can create the image on your own, using the [Dockerfile](Dockerfile) which comes with this repository:
 ```
@@ -61,21 +61,19 @@ where StoneDetector will look for code clones in directory `path/to/Java/Folder`
 
 StoneDetector prints detected code clones onto the screen. Each line specifies a single clone pair using the format `directory1,filename1,startline1,endline1,directory2,filename2,startline2,endline2`, where `directory1,filename1,startline1,endline1` specifies the location of the one code fragment and `directory2,filename2,startline2,endline2` specifies the location of the other code fragment. Note that the order of the code fragments in the clone pair is not significant. For example, `test,F.java,5,24,test,F.java,27,46` denotes the clone pair which is formed by the two code fragments between lines 5 to 24 and lines 27 to 46, respectively, in file `test/F.java`.
 
+### Configuration
+
+The StoneDetector tool provides a set of configuration parameters, which allow you to play with its clone detection capabilities. Configuration is defined in the file `config/default.properties`
+
 ## Playing with the implementation
-The entry point of ..., which is invoked when issuing any command starting with pub run ... is located at bin/dart. The driver that executes the static analysis, and iteratively executes the hybrid dynamic/static analysis is lib/dart (more specifically the method analyze()).
 
-The StoneDetector implementation consists of four main components.
+Further configuration parameters of the tool are defined in its implementation, see file [Environment.java](src/main/java/org/fsu/codeclones/Environment.java). The entry point of the tool, which is invoked when issuing scripts `run.sh` and `run_benchmark.sh` or executing the tool explicitly, is located at [SpoonBigCloneBenchDriver.java](src/main/java/org/dlr/foobar/SpoonBigCloneBenchDriver.java).
 
-Instrumentation framework for the dynamic analysis
-See libs/.
-
-Control flow graph construction
-See flow/ and in particular /lib/src/cfg/.
-
-Static call graph construction, data flow and dependence analysis
-See flow/.
-
-also add information on configuration and configuration parameters ... and tutorial on how to built the system and run the benchmark
+The StoneDetector implementation consists of four main components:
+ * Java source code parser and control flow graph generation based upon [Spoon](https://github.com/INRIA/spoon): See [SpoonBigCloneBenchDriver.java](src/main/java/org/dlr/foobar/SpoonBigCloneBenchDriver.java)
+ * Dominator tree construction based upon [WALA](https://github.com/wala/WALA): See [DominatorTree.java](src/main/java/org/fsu/codeclones/DominatorTree.java)
+ * Description sets encoding: See [Encoder.java](src/main/java/org/fsu/codeclones/Encoder.java),[HashEncoder.java](src/main/java/org/fsu/codeclones/HashEncoder.java),  and in particular[CompletePathEncoder.java](src/main/java/org/fsu/codeclones/CompletePathEncoder.java)
+ * Metrics implementation: See [LCS.java](src/main/java/org/fsu/codeclones/LCS.java), [HammingDistance.java](src/main/java/org/fsu/codeclones/HammingDistance.java), [LevenShtein.java](src/main/java/org/fsu/codeclones/LevenShtein.java), etc.
 
 ## I want to know more
 
