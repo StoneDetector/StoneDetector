@@ -4,7 +4,7 @@ If you just want to try out StoneDetector, you can also have a look at the tool'
 
 ## StoneDetector Quick Start
 * Adjust StoneDetector's configuration file under `config/default.properties`
-* Build StoneDetector (requires at least JDK11)
+* Build StoneDetector using gradle (requires at least JDK11)
 ```
 ./gradlew jar
 ```
