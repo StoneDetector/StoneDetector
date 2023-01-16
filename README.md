@@ -1,6 +1,6 @@
 # StoneDetector - Finding Structural Clones and Subclones in Java Source Code
 
-If you just want to try StoneDetector, you can also have a look at the tool's interactive website: [stonedetector.fmi.uni-jena.de](https://stonedetector.fmi.uni-jena.de).
+If you just want to try out StoneDetector, you can also have a look at the tool's interactive website: [stonedetector.fmi.uni-jena.de](https://stonedetector.fmi.uni-jena.de).
 
 ## StoneDetector Quick Start
 * Adjust StoneDetector's configuration file under `config/default.properties`
@@ -47,7 +47,7 @@ You can also replicate StoneDetector's results on the [BigCloneEval](https://git
 ```
 ./run.sh run_benchmark.sh
 ```
-Note that the latter requires quite some time due to the benchmark's size and depending on your configuration. The results will be written into the tool evaluation report named `BigCloneEval_Report.txt`. For more information about the report's format or the benchmark, we refer to [BigCloneEval](https://github.com/jeffsvajlenko/BigCloneEval).
+Note that the latter requires quite some time due to the benchmark's size and depending on your machine. The results will be written into the tool evaluation report named `BigCloneEval_Report.txt`. For more information about the report's format or the benchmark, we refer to [BigCloneEval](https://github.com/jeffsvajlenko/BigCloneEval).
 
 ## How to use StoneDetector
 
@@ -59,11 +59,22 @@ where StoneDetector will look for code clones in directory `path/to/Java/Folder`
 
 ### Output format
 
-StoneDetector prints detected code clones onto the screen. Each line specifies a single clone pair using the format `directory1,filename1,startline1,endline1,directory2,filename2,startline2,endline2`, where `directory1,filename1,startline1,endline1` specifies the location of the one code fragment and `directory2,filename2,startline2,endline2` specifies the location of the other code fragment. Note that the order of the code fragments in the clone pair is not significant. For example, `test,F.java,5,24,test,F.java,27,46` denotes the clone pair which is formed by the two code fragments between lines 5 to 24 and lines 27 to 46, respectively, in file `test/F.java`.
+StoneDetector prints detected code clones by default onto the screen. Each line specifies a single clone pair using the format `directory1,filename1,startline1,endline1,directory2,filename2,startline2,endline2`, where `directory1,filename1,startline1,endline1` specifies the location of the one code fragment and `directory2,filename2,startline2,endline2` specifies the location of the other code fragment. Note that the order of the code fragments in the clone pair is not significant. For example, `test,F.java,5,24,test,F.java,27,46` denotes the clone pair which is formed by the two code fragments between lines 5 to 24 and lines 27 to 46, respectively, in file `test/F.java`.
 
 ### Configuration
 
-The StoneDetector tool provides a set of configuration parameters, which allow you to play with its clone detection capabilities. Configuration is defined in the file `config/default.properties`
+The StoneDetector tool provides various configuration parameters, which allow you to play with its code clone detection capabilities. The tool's configuration parameters are defined in the file `config/default.properties`. 
+| Parameter | Default | Description |
+| --------- | ------- | ----------- |
+| THREADSIZE | 3 |Number of parallel threads which are used for code clone detection |
+| MINFUNCTIONSIZE | 15 |Minimal length of code lines for a code fragment to be considered |
+| THRESHOLD | 0.3f |The threshold value used for comparing description sets (max difference) |
+| SPLITTING | false |Whether or not split nodes are used in description sets (detection of subclones/blocks) |
+| METRIC | LCS     |Metric which is used to compare description sets (LCS, Levenshtein, etc.) |
+| USEHASH | true |Whether or not description sets are additionally encoded as hash values |
+| USMD5 | false |Switch between MD5 or 4-byte prime number hash encoding for description sets | 
+| USEFUNCTIONNAMES | true |Whether or not method names are kept in description sets or normalized |
+| OUTPUT | true |Whether or not detected clone pairs are printed to the screen |
 
 ## Playing with the implementation
 
