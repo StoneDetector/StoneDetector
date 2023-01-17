@@ -3,6 +3,7 @@ FROM gradle:6.3.0-jdk11 AS build
 COPY --chown=gradle:gradle . /home/gradle/src
 
 WORKDIR /home/gradle/src
+RUN rm -rf build
 RUN gradle jar --no-daemon
 
 RUN git clone https://github.com/jeffsvajlenko/BigCloneEval
