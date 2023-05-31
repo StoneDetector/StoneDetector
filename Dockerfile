@@ -43,6 +43,7 @@ WORKDIR /StoneDetector/BigCloneEval/ijadataset
 RUN tar zxvf IJaDataset_BCEvalVersion.tar.gz
 WORKDIR /StoneDetector/BigCloneEval/commands
 RUN ./init
+RUN ./registerTool -n="StoneDetector" -d "StoneDetector"
 
 WORKDIR /StoneDetector
 RUN chmod +x run.sh
