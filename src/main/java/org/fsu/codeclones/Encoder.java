@@ -7,7 +7,7 @@ import com.ibm.wala.util.collections.Iterator2Iterable;
 import com.ibm.wala.util.debug.Assertions;
 import fr.inria.controlflow.ControlFlowNode;
 
-public abstract class Encoder{
+public abstract class Encoder<T>{
 
     public Code getKind(){
 	return 	Code.UNKNOWN;
@@ -16,17 +16,17 @@ public abstract class Encoder{
     static HashMap<String,Integer> ht = new HashMap<String, Integer>();
 
     
-    public abstract List<List<Encoder>> encodeDescriptionSet(List<List<ControlFlowNode>> it);
-    abstract boolean isPathInDescriptionSet(List<Encoder> path, List<List<Encoder>> set,
+    public abstract List<List<Encoder>> encodeDescriptionSet(List<List<T>> it);
+    public abstract boolean isPathInDescriptionSet(List<Encoder> path, List<List<Encoder>> set,
 					    MetricKind metric, boolean relativ, float threshold);
 
     public abstract boolean areTwoDescriptionSetsSimilar(List<List<Encoder>> set1, List<List<Encoder>> set2,
 						  MetricKind metric, boolean sorted, boolean relativ, float threshold);
     
-    abstract int[] getEncoding();   // returns the encoding of a node => when using hamming metrics
+    public abstract int[] getEncoding();   // returns the encoding of a node => when using hamming metrics
                                     //             encoding of a path => when using euclidean metrics
     
-    abstract int getNumberOfEncodings(); // returns the number code elements from root to the node, that invokes the method
+    public abstract int getNumberOfEncodings(); // returns the number code elements from root to the node, that invokes the method
     
     static{
 	ht.put("class spoon.support.reflect.code.CtArrayAccessImpl",1);
@@ -86,8 +86,5 @@ public abstract class Encoder{
 	ht.put("class spoon.support.reflect.code.CtWhileImpl",55);
 	ht.put("class spoon.support.reflect.code.CtYieldStatementImpl",56);
 	ht.put("class spoon.support.reflect.declaration.CtClassImpl",57);
-
     }
-
- 
 }

@@ -107,7 +107,7 @@ public class LevenShtein{
 	return 0;
     }
 
-    static float findPathWithLEVENSHTEIN(int[] path, List<List<Encoder>> set){
+    public static float findPathWithLEVENSHTEIN(int[] path, List<List<Encoder>> set){
 	float levenShtein = 0;
 	int nodesInPath = path.length;
 	float medium = 1.0F;
@@ -189,7 +189,7 @@ public class LevenShtein{
     
     }
     
- static float findPathWithLEVENSHTEIN(long[] path1_low, long[] path1_high, List<List<Encoder>> set){
+ public static float findPathWithLEVENSHTEIN(long[] path1_low, long[] path1_high, List<List<Encoder>> set){
 
 	float levenShtein = 0;
 	int nodesInPath = path1_low.length;

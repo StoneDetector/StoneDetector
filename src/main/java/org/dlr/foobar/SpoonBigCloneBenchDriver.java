@@ -5,24 +5,16 @@ import fr.inria.controlflow.ControlFlowBuilder;
 import fr.inria.controlflow.ControlFlowGraph;
 import fr.inria.controlflow.ControlFlowNode;
 import com.ibm.wala.util.graph.dominators.Dominators;
-import com.ibm.wala.util.graph.Graph;
 import com.ibm.wala.util.graph.AbstractGraph;
 import org.apache.commons.configuration2.FileBasedConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
 import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.ex.ConfigurationException;
-import org.apache.commons.configuration2.ex.ConversionException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.fsu.codeclones.CompletePathEncoder;
-import org.fsu.codeclones.AbstractEncoder;
-import org.fsu.codeclones.HashEncoder;
-import org.fsu.codeclones.DominatorTree;
-import org.fsu.codeclones.Encoder;
-import org.fsu.codeclones.MetricKind;
-import org.fsu.codeclones.EncoderKind;
-import org.fsu.codeclones.Environment;
-import org.fsu.codeclones.SortedMultisetPathEncoder;
+import org.fsu.bytecode.ByteCodePathExtraction;
+import org.fsu.bytecode.HashEncoderRegisterCode;
+import org.fsu.codeclones.*;
 import spoon.Launcher;
 import spoon.reflect.cu.position.NoSourcePosition;
 import spoon.reflect.declaration.*;
@@ -33,29 +25,34 @@ import spoon.support.reflect.declaration.CtConstructorImpl;
 import spoon.support.reflect.declaration.CtMethodImpl;
 import spoon.reflect.declaration.CtClass;
 import spoon.processing.AbstractProcessor;
-import java.io.FileWriter;
-import java.io.BufferedWriter;
-import java.io.PrintWriter;
-import java.io.IOException;
-import java.io.File;
+
+import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.Path;
-import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.EnumSet;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 // TODO: add time to logging ...
 
 public class SpoonBigCloneBenchDriver extends AbstractProcessor<CtClass> {
+    static boolean saveOutput = false;
 
-  static Object monitorAddPathes=new Object();
-  static Object monitorOutput=new Object();
+    static FileBasedConfiguration config = null;
+    public static int pathExtractionMode = 1;
+    public static boolean encodeAsInRegistercode = false;
+
+    static String outputString = "";
+    static String outputFileName = "/home/hanno/CodeCloner/dominator4java/SPOON/resultFiles/analysize/";
+
+    static int countClones = 0;
+
+  static Object monitorAddPaths = new Object();
+  static Object monitorOutput = new Object();
 
   final static Logger logger =
       LoggerFactory.getLogger(SpoonBigCloneBenchDriver.class);
@@ -65,57 +62,11 @@ public class SpoonBigCloneBenchDriver extends AbstractProcessor<CtClass> {
       totalFiles, successPath;
   private StringBuilder errorLog;
   private boolean errors, output, skipclones, exceptions;
+  public static boolean bytecode=false;
     
   //private Path currentFile;
-  private static ThreadLocal<Path> currentFile = new ThreadLocal<>();
+  private static final ThreadLocal<Path> currentFile = new ThreadLocal<>();
   private String workingDirectory, outputDirectory;
-
-  class MethodTuple {
-    List<List<Encoder>> encodePathSet;
-    MethodInfo info;
-
-    MethodTuple(CtExecutable m, List<List<Encoder>> encodePathSet) {
-      this.encodePathSet = encodePathSet;
-      this.info = new MethodInfo(m);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) return true;
-      if (o == null || getClass() != o.getClass()) return false;
-      return this.info.equals(((MethodTuple) o).info);
-    }
-  }
-    class MethodInfo {
-      String subDir;
-      String fileName;
-      int startLine;
-      int endLine;
-
-      MethodInfo(CtExecutable m) {
-        this.subDir = currentFile.get().getParent().getFileName().toString();
-        this.fileName = currentFile.get().getFileName().toString();
-        this.startLine = m.getPosition().getLine();
-        this.endLine = m.getPosition().getEndLine();
-        for (CtAnnotation annotation : m.getAnnotations())
-	{	
-  	    if (annotation.getPosition().getLine()<this.startLine)
-    		this.startLine=annotation.getPosition().getLine();
-	}	
-      }
-
-      @Override
-      public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        MethodInfo that = (MethodInfo) o;
-        return startLine == that.startLine &&
-                endLine == that.endLine &&
-                Objects.equals(subDir, that.subDir) &&
-                Objects.equals(fileName, that.fileName);
-      }
-    }
-  
 
   private static final ArrayList<MethodTuple> outputTuples = new ArrayList<MethodTuple>();
   private MethodTuple[] outputTuplesArray;
@@ -135,7 +86,7 @@ public class SpoonBigCloneBenchDriver extends AbstractProcessor<CtClass> {
   void setOutput(boolean output) {this.output = output;}
   void setOutputDir(String outputDirectory) {this.outputDirectory = outputDirectory;}
 
-  public static void main(String args[]) {
+  public static void main(String[] args) {
     // defining the command line parser using Apache Commons CLI
     // cf. https://commons.apache.org/proper/commons-cli
     Options options = new Options();
@@ -144,7 +95,6 @@ public class SpoonBigCloneBenchDriver extends AbstractProcessor<CtClass> {
     Option optionX = new Option("x", "exceptions", false,
         "Enable Spoon's naive exception control flow strategy");
     options.addOption(optionX);
-
     // source directory option
     Option option = new Option("d", "directory",
         true, "working directory for bigclonebench");
@@ -164,6 +114,7 @@ public class SpoonBigCloneBenchDriver extends AbstractProcessor<CtClass> {
     HelpFormatter formatter = new HelpFormatter();
     String command = "./gradlew --args=\"--directory=dataset [--out=out_basedir]\"";
 
+
     try {
       // parsing command line arguments
       CommandLineParser parser = new DefaultParser();
@@ -173,6 +124,9 @@ public class SpoonBigCloneBenchDriver extends AbstractProcessor<CtClass> {
         System.exit(0);
       }
       String workingDirectory = cmd.getOptionValue("directory");
+      // TODO
+      int folder = 13;
+      //String workingDirectory = "/home/hanno/CodeCloner/BigCloneEval/ijadataset/bcb_reduced/" + folder;
       logger.info("Traversing working directory {} ...", workingDirectory);
       long start=System.nanoTime();
       SpoonBigCloneBenchDriver driver = new SpoonBigCloneBenchDriver(workingDirectory);
@@ -183,62 +137,132 @@ public class SpoonBigCloneBenchDriver extends AbstractProcessor<CtClass> {
       if (cmd.hasOption("out"))
         driver.setOutputDir(cmd.getOptionValue("out"));
 
-      FileBasedConfiguration configuration = null;
-      String configFileName="config/default.properties";
-      Parameters params = new Parameters();
-      FileBasedConfigurationBuilder<FileBasedConfiguration> builder =
-              new FileBasedConfigurationBuilder<FileBasedConfiguration>(PropertiesConfiguration.class)
-                      .configure(params.properties()
-                              .setFileName(configFileName));
-      try {
-        configuration = builder.getConfiguration();
-      } catch (ConfigurationException e) {
-        e.printStackTrace();
-      }
-      try {
-        Environment.THREADSIZE = configuration.getInt("THREADSIZE");
-        Environment.METRIC = configuration.getString("METRIC").equals("NW") ? MetricKind.NW : configuration.getString("METRIC").equals("LEVENSHTEIN") ? MetricKind.LEVENSHTEIN : MetricKind.LCS;
-        Environment.PATHSINSETS = configuration.getBoolean("SPLITTING") ? EncoderKind.SPLITTING : EncoderKind.UNSPLITTING;
-        Environment.TECHNIQUE = configuration.getBoolean("USEHASH") ? EncoderKind.HASH : EncoderKind.COMPLETEPATH;
-        Environment.MD5 = configuration.getBoolean("USEMD5");
-        Environment.THRESHOLD = configuration.getFloat("THRESHOLD");
-        Environment.MINSIZE = configuration.getInt("MINFUNCTIONSIZE");
-        Environment.SUPPORTCALLNAMES = configuration.getBoolean("USEFUNCTIONNAMES");
-        Environment.WIDTHUPPERFAKTOR = configuration.getFloat("UPPERFACTOR");
-        Environment.MINNODESNO = configuration.getBoolean("SPLITTING") ? 1 : 3;
-        Environment.OUTPUT = configuration.getBoolean("OUTPUT");
-      }catch (NoSuchElementException|ConversionException ex)
-      {
-        ex.printStackTrace();
-      }
+        FileBasedConfiguration configuration = null;
+        String configFileName="config/default.properties";
+        Parameters params = new Parameters();
+        FileBasedConfigurationBuilder<FileBasedConfiguration> builder =
+                new FileBasedConfigurationBuilder<FileBasedConfiguration>(PropertiesConfiguration.class)
+                        .configure(params.properties()
+                                .setFileName(configFileName));
+        try {
+            configuration = builder.getConfiguration();
+        } catch (ConfigurationException e) {
+            e.printStackTrace();
+        }
+        try {
+            Environment.THREADSIZE = configuration.getInt("THREADSIZE");
+            Environment.METRIC = configuration.getString("METRIC").equals("NW") ? MetricKind.NW : configuration.getString("METRIC").equals("LEVENSHTEIN") ? MetricKind.LEVENSHTEIN : MetricKind.LCS;
+            Environment.PATHSINSETS = configuration.getBoolean("SPLITTING") ? EncoderKind.SPLITTING : EncoderKind.UNSPLITTING;
+            Environment.TECHNIQUE = configuration.getBoolean("USEHASH") ? EncoderKind.HASH : EncoderKind.COMPLETEPATH;
+            Environment.MD5 = configuration.getBoolean("USEMD5");
+            Environment.THRESHOLD = configuration.getFloat("THRESHOLD");
+            Environment.MINSIZE = configuration.getInt("MINFUNCTIONSIZE");
+            Environment.SUPPORTCALLNAMES = configuration.getBoolean("USEFUNCTIONNAMES");
+            Environment.WIDTHUPPERFAKTOR = configuration.getFloat("UPPERFACTOR");
+            Environment.MINNODESNO = configuration.getBoolean("SPLITTING") ? 1 : 3;
+            Environment.OUTPUT = configuration.getBoolean("OUTPUT");
+            Environment.BYTECODEBASED= configuration.getBoolean("BYTECODEBASEDCLONEDETECTION");
+            Environment.USEREGISTERCODE= configuration.getBoolean("REGISTERCODE_STACKCODE");
+            Environment.STUBBERPROCESSING=configuration.getBoolean("STUBBERPROCESSING");
+            if ( Environment.BYTECODEBASED && Environment.USEREGISTERCODE)
+            {
+                Environment.BREMOVESMALLPATHES =0.4f;
+                Environment.BPATHESDIFF =0.3f;
+                Environment.WIDTHLOWERNO=5;
+                //Environment.WIDTHUPPERFAKTOR=1.5F;
+                Environment.MINNODESNO=3;
+                Environment.MAXDIFFNODESNO=7;
+            }
+            else {
+                Environment.BREMOVESMALLPATHES =0.3f;
+                Environment.BPATHESDIFF =0.3f;
+                //Environment.THRESHOLD=0.15F;
+                Environment.WIDTHLOWERNO=3;
+                //Environment.WIDTHUPPERFAKTOR=1.3F;
 
-      // traversing the benchmark directory and calling the Spoon driver
+
+            }
+
+        }catch (NoSuchElementException ex)
+        {
+            ex.printStackTrace();
+        }
+
       int poolSize=Environment.THREADSIZE;
-      ForkJoinPool myPool = new ForkJoinPool(poolSize);
-      myPool.submit(() -> {
-                try {
-                  Files.walk(Paths.get(workingDirectory))
-                          .collect(Collectors.toList())
-                          .parallelStream()
-                          .filter(Files::isRegularFile)
-                          .forEach(driver::process);
-			  /*.forEach(path -> {
-                            SpoonBigCloneBenchDriver d = new SpoonBigCloneBenchDriver(workingDirectory);
-                            driver.skipclones = cmd.hasOption("skipclones");
-                            driver.setErrors(cmd.hasOption("error-file"));
-                            driver.setOutput(cmd.hasOption("out"));
-                            driver.exceptions = cmd.hasOption("exceptions");
-                            d.process(path);
-                          });*/
-                } catch (IOException e) {
-                  System.out.println("ERROR: Unable to access " + workingDirectory);
-                  formatter.printHelp(command, options);
-                  System.exit(1);
-                }
-              }
-      ).get();
 
-      long end1=System.nanoTime();
+      if (Environment.BYTECODEBASED) {
+          outputFileName += "resultBytecode_" + folder;
+
+        configFileName=Environment.USEREGISTERCODE? "config/Patterns/ConfigRegisterCodePatterns":"config/Patterns/ConfigByteCodePatterns";
+        params = new Parameters();
+        builder =
+                new FileBasedConfigurationBuilder<FileBasedConfiguration>(PropertiesConfiguration.class)
+                        .configure(params.properties()
+                                .setFileName(configFileName));
+        try {
+          config = builder.getConfiguration();
+        } catch (ConfigurationException e) {
+          e.printStackTrace();
+        }
+
+        SpoonBigCloneBenchDriver.bytecode=true;
+        SimpleDateFormat f= new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z");
+        Date startB = new Date(System.currentTimeMillis());
+        SpoonBigCloneBenchDriver.outputTuples.addAll(ByteCodePathExtraction.extractPathes(workingDirectory,Environment.MINSIZE,Environment.PATHSINSETS,Environment.TECHNIQUE,config));
+        Date endB = new Date(System.currentTimeMillis());
+        logger.info(f.format(startB));
+        logger.info(f.format(endB));
+      }
+      else {
+          outputFileName += "resultSourcecode_" + folder;
+
+          // init config
+          configFileName = "config/Patterns/ConfigSourceCodePatterns";
+          params = new Parameters();
+          builder =
+                  new FileBasedConfigurationBuilder<FileBasedConfiguration>(PropertiesConfiguration.class)
+                          .configure(params.properties()
+                                  .setFileName(configFileName));
+          try {
+              config = builder.getConfiguration();
+          } catch (ConfigurationException e) {
+              e.printStackTrace();
+          }
+
+          // init pathExtractionMode
+          // TODO
+          if (config != null){
+              int pathExtractionModeConfig = config.getInt("pathExtractionMode");
+              if (0 < pathExtractionModeConfig && pathExtractionModeConfig < 4){
+                  pathExtractionMode = pathExtractionModeConfig;
+              }
+              else {
+                  try {
+                      throw new Exception("pathExtractionMode has Unknown Value: " + pathExtractionModeConfig);
+                  }
+                  catch (Exception ignored) {}
+              }
+              if (config.getBoolean("encodeAsInRegistercode")){
+                  encodeAsInRegistercode = true;
+              }
+          }
+
+            // traversing the benchmark directory and calling the Spoon driver
+
+            ForkJoinPool myPool = new ForkJoinPool(poolSize);
+            myPool.submit(() -> {
+                try {
+                    Files.walk(Paths.get(workingDirectory))
+                            .collect(Collectors.toList())
+                            .parallelStream()
+                            .filter(Files::isRegularFile)
+                            .forEach(driver::process);
+                } catch (IOException e) {
+                    System.out.println("ERROR: Unable to access " + workingDirectory);
+                    formatter.printHelp(command, options);
+                    System.exit(1);
+                }
+            }).get();
 
       // logging
       logger.info("Successfully created AST for {} out of {} files",
@@ -249,16 +273,11 @@ public class SpoonBigCloneBenchDriver extends AbstractProcessor<CtClass> {
           driver.successDom, driver.totalMethods);
       logger.info("Successfully encoded paths for {} out of {} methods",
           driver.successPath, driver.totalMethods);
-      //System.out.println("Successfully created AST for "+driver.successAST+" out of "+driver.totalFiles+" files");
-
-      //System.out.println("Successfully created CFG for "+driver.successCFG+" out of "+driver.totalMethods+" methods");
-      //System.out.println("Successfully created DomTree for "+driver.successDom+" out of "+driver.totalMethods+" methods");
-      //System.out.println("Successfully encoded paths for "+driver.successPath+" out of "+driver.totalMethods+" methods");
+      }
+      long end1=System.nanoTime();
 
       if (!driver.skipclones) {
-        driver.outputTuplesArray= driver.outputTuples.toArray(new MethodTuple[driver.outputTuples.size()]);
-        //driver.detectClones(0,1);
-
+        driver.outputTuplesArray= SpoonBigCloneBenchDriver.outputTuples.toArray(new MethodTuple[SpoonBigCloneBenchDriver.outputTuples.size()]);
 
         ThreadPoolExecutor executor =(ThreadPoolExecutor) Executors.newFixedThreadPool(poolSize);
         for (int i =0;i<poolSize;i++)
@@ -271,15 +290,26 @@ public class SpoonBigCloneBenchDriver extends AbstractProcessor<CtClass> {
         }
         executor.shutdown();
         try {
-          //System.out.println("startwait");
           executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-          //System.out.println("end");
         } catch (InterruptedException e) {
         }
       }
       long end2=System.nanoTime();
-      logger.info("Time create pathes= "+TimeUnit.SECONDS.convert(end1-start, TimeUnit.NANOSECONDS));
-      logger.info("Time find clones= "+TimeUnit.SECONDS.convert(end2-end1, TimeUnit.NANOSECONDS));
+      logger.info("Time create pathes= "+TimeUnit.MILLISECONDS.convert(end1-start, TimeUnit.NANOSECONDS));
+      logger.info("Time find clones= "+TimeUnit.MILLISECONDS.convert(end2-end1, TimeUnit.NANOSECONDS));
+
+      logger.info("--- Numbers of Clones: " + countClones);
+
+      if (saveOutput){
+          logger.info("Write Result to File " + outputFileName + "...");
+          try {
+              PrintWriter writer = new PrintWriter(outputFileName);
+              writer.print(outputString);
+              writer.close();
+          } catch (IOException e) {
+              e.printStackTrace();
+          }
+      }
       // write errors
       if (driver.errors) {
         driver.logErrors(cmd.getOptionValue("error-file"));
@@ -293,51 +323,44 @@ public class SpoonBigCloneBenchDriver extends AbstractProcessor<CtClass> {
       e.printStackTrace();
     }
   }
-    // Preparation for clone detection ->changes must be compiles with ./gradlew jar in SPOON
-    
+
+
+  // Preparation for clone detection ->changes must be compiles with ./gradlew jar in SPOON
   void detectClones(int start, int add) {
-      Encoder myEncoder = null;
-      if(Environment.TECHNIQUE == EncoderKind.COMPLETEPATH)    
-	  myEncoder = new CompletePathEncoder();
-      else if(Environment.TECHNIQUE == EncoderKind.HASH)    
-	  myEncoder = new HashEncoder();
-      else if (Environment.TECHNIQUE == EncoderKind.MULTISET)
-	  myEncoder = new SortedMultisetPathEncoder();
-      else
-	  myEncoder = new AbstractEncoder();
+      Encoder myEncoder;
+      if (!bytecode) {
+          if (Environment.TECHNIQUE == EncoderKind.COMPLETEPATH)
+              myEncoder = new CompletePathEncoder();
+          else if (Environment.TECHNIQUE == EncoderKind.HASH)
+              myEncoder = new HashEncoder();
+          else if (Environment.TECHNIQUE == EncoderKind.MULTISET)
+              myEncoder = new SortedMultisetPathEncoder();
+          else
+              myEncoder = new AbstractEncoder();
+      }
+      else {
+          if (Environment.TECHNIQUE == EncoderKind.COMPLETEPATH)
+              myEncoder = new CompletePathEncoder();
+          else if (Environment.TECHNIQUE == EncoderKind.HASH)
+              myEncoder = new HashEncoderRegisterCode();
+          else if (Environment.TECHNIQUE == EncoderKind.MULTISET)
+              myEncoder = new SortedMultisetPathEncoder();
+          else
+              myEncoder = new AbstractEncoder();
+      }
 
-
-      for (int countIndex1=start;countIndex1<outputTuplesArray.length;countIndex1=countIndex1+add)
-      {
+      for (int countIndex1=start;countIndex1<outputTuplesArray.length;countIndex1=countIndex1+add) {
           MethodTuple cf_1=outputTuplesArray[countIndex1];
 
-          for (int coundIndex2=countIndex1+1;coundIndex2<outputTuplesArray.length;coundIndex2++)
-          {
-            MethodTuple cf_2=outputTuplesArray[coundIndex2];
+          for (int coundIndex2=countIndex1+1;coundIndex2<outputTuplesArray.length;coundIndex2++) {
+              MethodTuple cf_2=outputTuplesArray[coundIndex2];
 
-/*      int i=-1;
-      for (MethodTuple cf_1: this.outputTuples) {
-            i=i+1;
-            if (i<start || i>end)
-              continue;
-            boolean visited = false;
-            for (MethodTuple cf_2: this.outputTuples) {
-                if(cf_1.equals(cf_2)) {
-                  visited = true;
+              if (!(Environment.BYTECODEBASED && !Environment.STUBBERPROCESSING))
+              if((cf_1.info.endLine-cf_1.info.startLine+1)<Environment.MINSIZE ||  (cf_2.info.endLine-cf_2.info.startLine+1)<Environment.MINSIZE)
                   continue;
-                }
-                if (!visited)
-                  continue;*/
-	    
-                if((cf_1.info.endLine - cf_1.info.startLine + 1) < Environment.MINSIZE ||  (cf_2.info.endLine - cf_2.info.startLine + 1) <Environment.MINSIZE)
-                  continue;
-                //if(cf_1.encodePathSet.size() == 0){
-                //  System.out.println(cf_1.info.fileName + " " +
-                //cf_1.info.startLine);
-                  //}
-
-                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                if(myEncoder.areTwoDescriptionSetsSimilar(cf_1.encodePathSet,
+              // this statement is useless
+              // if (cf_1.info.fileName.equals("1359154.java") && cf_2.info.fileName.equals("1359154.java")) { String s=""; }
+              if(myEncoder.areTwoDescriptionSetsSimilar(cf_1.encodePathSet,
                                       cf_2.encodePathSet,
                                       Environment.METRIC,
                                       Environment.SORTED, // true=>sorted
@@ -345,84 +368,136 @@ public class SpoonBigCloneBenchDriver extends AbstractProcessor<CtClass> {
                                       Environment.THRESHOLD)) {
                                                           //Levenstein Splitting und Unsplitting  0.35
                                                           //LCS Splitting und Unsplitting 0.3F
-                    if(Environment.OUTPUT){
-                          if ((cf_2.info.subDir.equals(cf_1.info.subDir) && cf_1.info.fileName.equals(cf_2.info.fileName)) &&
-                                  ((cf_1.info.startLine>cf_2.info.startLine && cf_1.info.endLine<cf_2.info.endLine)||
-                                          (cf_2.info.startLine>cf_1.info.startLine && cf_2.info.endLine<cf_1.info.endLine)))
+                   if(Environment.OUTPUT) {
+                        if ((cf_2.info.subDir.equals(cf_1.info.subDir) && cf_1.info.fileName.equals(cf_2.info.fileName)) &&
+                                ((cf_1.info.startLine > cf_2.info.startLine && cf_1.info.endLine < cf_2.info.endLine) ||
+                                        (cf_2.info.startLine > cf_1.info.startLine && cf_2.info.endLine < cf_1.info.endLine)))
                             continue;
-			StringBuilder builder = new StringBuilder();
-                          String part1=builder.append(cf_1.info.subDir)
-                                  .append(",")
-                                  .append(cf_1.info.fileName)
-                                  .append(",")
-                                  .append(cf_1.info.startLine)
-                                  .append(",")
-                                  .append(cf_1.info.endLine).toString();
-                          builder=new StringBuilder();
-                          String part2=builder.append(cf_2.info.subDir)
-                                  .append(",")
-                                  .append(cf_2.info.fileName)
-                                  .append(",")
-                                  .append(cf_2.info.startLine)
-                                  .append(",")
-                                  .append(cf_2.info.endLine).toString();
-                          builder=new StringBuilder();
-                                if (!part1.equals(part2))  {
+                        StringBuilder builder = new StringBuilder();
+                        builder.append(cf_1.info.subDir)
+                                .append(",")
+                                .append(cf_1.info.fileName);
+                       if (!(Environment.BYTECODEBASED && !Environment.STUBBERPROCESSING))
+                                builder.append(",")
+                                .append(cf_1.info.startLine)
+                                .append(",")
+                                .append(cf_1.info.endLine);
+                       String part1 =builder.toString();
+                               builder = new StringBuilder();
+                       builder.append(cf_2.info.subDir)
+                                .append(",")
+                                .append(cf_2.info.fileName);
+                       if (!(Environment.BYTECODEBASED && !Environment.STUBBERPROCESSING))
+                           builder.append(",")
+                                .append(cf_2.info.startLine)
+                                .append(",")
+                                .append(cf_2.info.endLine);
+                       String part2=builder.toString();
+                       builder = new StringBuilder();
+                       if (!part1.equals(part2)) {
+                           builder.append(part1)
+                                   .append(",")
+                                   .append(part2);
 
-                                  builder.append(cf_1.info.subDir)
-                                          .append(",")
-                                          .append(cf_1.info.fileName)
-                                          .append(",")
-                                          .append(cf_1.info.startLine)
-                                          .append(",")
-                                          .append(cf_1.info.endLine)
-                                          .append(",")
-                                          .append(cf_2.info.subDir)
-                                          .append(",")
-                                          .append(cf_2.info.fileName)
-                                          .append(",")
-                                          .append(cf_2.info.startLine)
-                                          .append(",")
-                                          .append(cf_2.info.endLine);
-
-                                  synchronized (monitorOutput) {
-                                    System.out.println(builder.toString());
-                                  }
-                                }
-                              builder = null;
-                          }
-                        
-                    }
-	
+                           synchronized (monitorOutput) {
+                              String outp = builder.toString();
+                              countClones += 1;
+                              System.out.println(outp);
+                               if (saveOutput) { outputString = outputString.concat(outp + "\n"); }
+                           }
+                       }
+                  }
+              }
+          }
       }
-    }
-      
   }
 
   public void process(CtClass type) {
-    String dir = "";
-    if (output) {
-      // directory that all the graphs of the type are written to
-      dir = convertToOutputDirectory(currentFile.get());
-      // make directory
-      new File(dir).mkdirs();
-    }
-
-    for (Object m : type.getTypeMembers()) {
-      try {
-        extractGraphs(type, m, dir);
-      } catch (Throwable e) {
-        if (errors)
-          reportErrors(e);
+      String dir = "";
+      if (output) {
+          // directory that all the graphs of the type are written to
+          dir = convertToOutputDirectory(currentFile.get());
+          // make director
+          new File(dir).mkdirs();
       }
-    }
-    //return encodePathSet;
+      // TODO
+      List<MethodTuple> tmpList= new ArrayList<>();
+      for (Object m : type.getTypeMembers()) {
+          try {
+              List<List<Encoder>> l=extractGraphs(type, m, dir);
+              if (l != null){
+                  tmpList.add(new MethodTuple((CtExecutable) m,l,SpoonBigCloneBenchDriver.currentFile.get()));
+              }
+          } catch (Throwable e) {
+              if (errors) { reportErrors(e); }
+          }
+      }
+      if (!skipclones && pathExtractionMode != 1) {
+          // get current method output and search for Subfunctions
+          ArrayList<MethodTuple> methodOutputs = new ArrayList<>();
+          ArrayList<MethodTuple> subFunctions = new ArrayList<>();
+          for (MethodTuple currentTuple : tmpList) {
+              int startLine = currentTuple.info.startLine;
+              int endLine = currentTuple.info.endLine;
+              boolean added = false;
+
+              for (int i = 0; i < methodOutputs.size(); i++) {
+                  MethodTuple methodTuple = methodOutputs.get(i);
+                  int currentStart = methodTuple.info.startLine;
+                  int currentEnd = methodTuple.info.endLine;
+
+                  if (startLine > currentStart && endLine < currentEnd) {
+                      // first case -> between currentStart and currentEnd
+                      // So it is obviously a subfunction
+                      subFunctions.add(methodTuple);
+                      currentTuple.encodePathSet.addAll(methodTuple.encodePathSet);
+                      added = true;
+                      break;
+                  } else if (startLine < currentStart && endLine > currentEnd) {
+                      // second case -> subfunction is already in list
+                      ArrayList<MethodTuple> removeLater = new ArrayList<>();
+                      // can be over more than one line
+                      int c;
+                      for (c = i; c < methodOutputs.size(); c++) {
+                          currentEnd = methodOutputs.get(c).info.endLine;
+                          if (endLine > currentEnd) {
+                              removeLater.add(methodOutputs.get(c));
+                          } else
+                              break;
+
+                      }
+                      for (MethodTuple entry : removeLater) {
+                          subFunctions.add(entry);
+                          currentTuple.encodePathSet.addAll(methodTuple.encodePathSet);
+                          methodOutputs.remove(entry);
+                      }
+                      methodOutputs.add(i, methodTuple);
+                      added = true;
+                      break;
+                  } else if (endLine < currentEnd) {
+                      methodOutputs.add(i, methodTuple);
+                      added = true;
+                      break;
+                  }
+              }
+              if (!added) {
+                  methodOutputs.add(currentTuple);
+              }
+          }
+          synchronized (monitorAddPaths){
+              outputTuples.addAll(methodOutputs);
+              if (pathExtractionMode == 3){
+                  outputTuples.addAll(subFunctions);
+              }
+          }
+      }
   }
 
   public void setSkipClones(boolean skipClones)
   {
     this.skipclones=skipClones;
   }
+
   public List<List<Encoder>> extractGraphs(CtType type, Object m, String dir)
   {
 	
@@ -437,10 +512,15 @@ public class SpoonBigCloneBenchDriver extends AbstractProcessor<CtClass> {
       }
 
       if (!skipclones) {
-        MethodInfo info = new MethodInfo((CtExecutable) m); //
-
-        if ((info.endLine - info.startLine + 1) < Environment.MINSIZE) //
+        MethodInfo info = new MethodInfo((CtExecutable) m);
+        if ((info.endLine - info.startLine + 1) < Environment.MINSIZE){
           return null;
+        }
+        // TODO
+        /*if (info.startLine != 100 && info.startLine != 272){
+            System.out.println("Sourcecode line chooser activate!");
+            return null;
+        }*/
       }
     try {
        
@@ -449,32 +529,41 @@ public class SpoonBigCloneBenchDriver extends AbstractProcessor<CtClass> {
       String cfg_name = methodID(type, (CtExecutable) m) + "_cfg";
       ControlFlowGraph cfg = makeCFG((CtExecutable) m, cfg_name);
       successCFG++;
-      
-      //System.out.println(cfg_name);
-      //System.out.println(cfg);
+
+        // write the cfg and the domtree
+        if (config.getBoolean("createCFGGraph")){
+            String resultDirectory = config.getString("graphResultDirectory");
+            System.out.println("Writing CFG Graph to Directory " + resultDirectory + "...");
+            writeToPath(resultDirectory + "/" + cfg_name + ".dot", cfg.toGraphVisText());
+        }
       // building the dominator tree using the WALA library
       // cf. https://github.com/wala/WALA
       String domtree_name = methodID(type, (CtExecutable) m) + "_domtree";
       DominatorTree domtree = makeDomTree(cfg, domtree_name);
+
+        if (config.getBoolean("createDominatorTreeGraph")){
+            String resultDirectory = config.getString("graphResultDirectory");
+            System.out.println("Writing Dominator-tree Graph to Directory " + resultDirectory + "...");
+            writeToPath(resultDirectory + "/" + domtree_name + ".dot", domtree.toGraphVisText());
+        }
+
       successDom++;
       String encodePathSet_name = methodID(type, (CtExecutable) m) + "_encodePathSet";
+
+      //System.out.println("Dom Tree created");
       //!!!!!!System.out.println(cfg);!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       List<List<Encoder>> encodePathSet = domtree.encodePathSet(Environment.PATHSINSETS, Environment.TECHNIQUE, Environment.SETORDER);
 
       successPath++;
 
-      if (!skipclones) {
-        synchronized (monitorAddPathes) {
-          //for (List<List<Encoder>> pathset : encodePathSet)
-            this.outputTuples.add(new MethodTuple((CtExecutable) m, encodePathSet));
+      if (!skipclones && pathExtractionMode == 1) {
+        synchronized (monitorAddPaths) {
+            this.outputTuples.add(new MethodTuple((CtExecutable) m, encodePathSet,this.currentFile.get()));
         }
       }
-
-      // write the cfg and the domtree
       if (output) {
-        writeToPath(dir + cfg_name + ".dot", cfg.toGraphVisText());
-        writeToPath(dir + domtree_name + ".dot", domtree.toGraphVisText());
-        writeToPath(dir + encodePathSet_name + ".txt", encodePathSet.toString());
+          System.out.println("Writing EncodedPathSet to output directory!");
+          writeToPath(dir + encodePathSet_name + ".txt", encodePathSet.toString());
       }
       return encodePathSet;
 
@@ -492,18 +581,16 @@ public class SpoonBigCloneBenchDriver extends AbstractProcessor<CtClass> {
     currentFile.set(inputFile);
 
     try {
-      // configuring the Spoon library to read from file inputFile
-      // cf. https://spoon.gforge.inria.fr/
-      Launcher myLauncher = new Launcher();
-      myLauncher.addInputResource(inputFile.toString());
+        // configuring the Spoon library to read from file inputFile
+        // cf. https://spoon.gforge.inria.fr/
+        Launcher myLauncher = new Launcher();
+        myLauncher.addInputResource(inputFile.toString());
 
-      myLauncher.addProcessor(this);
-      myLauncher.buildModel();
-      myLauncher.process();
+        myLauncher.addProcessor(this);
+        myLauncher.buildModel();
+        myLauncher.process();
 
-      successAST++;
-      //System.out.println("fin "+inputFile);
-
+        successAST++;
     } catch (Throwable e) {
       if (errors)
         reportErrors(e);
@@ -521,32 +608,31 @@ public class SpoonBigCloneBenchDriver extends AbstractProcessor<CtClass> {
 
   ControlFlowGraph makeCFG(CtExecutable m, String name) {
     ControlFlowBuilder builder = new ControlFlowBuilder();
-    if (this.exceptions) {
+    if (this.exceptions || config.getBoolean("finalNodes")) {
         EnumSet<NaiveExceptionControlFlowStrategy.Options> options;
         options = EnumSet.of(NaiveExceptionControlFlowStrategy.Options.ReturnWithoutFinalizers);
-        builder.setExceptionControlFlowStrategy(new NaiveExceptionControlFlowStrategy(options));
+        builder.setExceptionControlFlowStrategy(new NaiveExceptionControlFlowStrategy(options, config, exceptions));
     }
-    ControlFlowGraph cfg = builder.build( m);
+    ControlFlowGraph cfg = builder.build(m, config);
     cfg.setName(name);
     cfg.simplify();
     return cfg;
   }
     
   DominatorTree makeDomTree(ControlFlowGraph cfg, String name) {
-    AbstractGraph<ControlFlowNode> dom = Dominators.make(
-            (Graph<ControlFlowNode>) cfg,
-            cfg.entry()).dominatorTree();
-    DominatorTree domtree = new DominatorTree(dom);
-    domtree.setName(name);
-    return domtree;
+      AbstractGraph<ControlFlowNode> dom = Dominators.make(cfg, cfg.entry()).dominatorTree();
+      DominatorTree domtree = new DominatorTree(dom, config);
+      domtree.setName(name);
+      return domtree;
   }
 
   void writeToPath(String path, String written) {
-    try {
-      FileWriter fw = new FileWriter(path);
-      fw.write(written);
-      fw.close();
-    } catch (IOException ignored) {}
+      try {
+          FileWriter fw = new FileWriter(path);
+          fw.write(written);
+          fw.close();
+      }
+      catch (IOException ignored) {}
   }
 
   void reportErrors(Throwable e) {
@@ -561,8 +647,7 @@ public class SpoonBigCloneBenchDriver extends AbstractProcessor<CtClass> {
       Path file = Paths.get(errorFile);
       Files.write(file, Collections.singleton(errorLog.toString()), StandardCharsets.UTF_8);
     } catch (IOException e) {
-      logger.warn("Could not write error file {}",
-          errorFile);
+      logger.warn("Could not write error file {}", errorFile);
     }
   }
 

@@ -21,6 +21,7 @@
  */
 package fr.inria.controlflow;
 
+import org.apache.commons.configuration2.FileBasedConfiguration;
 import spoon.reflect.code.CtCatch;
 import spoon.reflect.code.CtReturn;
 import spoon.reflect.code.CtThrow;
@@ -50,6 +51,8 @@ import java.util.Stack;
  * exit without executing finalizers.
  */
 public class NaiveExceptionControlFlowStrategy implements ExceptionControlFlowStrategy {
+	FileBasedConfiguration config = null;
+	boolean exceptions = false;
 	/**
 	 * Per-instance option flags for NaiveExceptionControlFlowStrategy.
 	 */
@@ -89,6 +92,13 @@ public class NaiveExceptionControlFlowStrategy implements ExceptionControlFlowSt
 		this(EnumSet.noneOf(Options.class));
 	}
 
+	public NaiveExceptionControlFlowStrategy(FileBasedConfiguration configuration, boolean exc) {
+		this(EnumSet.noneOf(Options.class));
+		this.config = configuration;
+		this.exceptions = exc;
+	}
+
+
 	/**
 	 * Create a new NaiveExceptionControlFlowStrategy using the given set of options.
 	 *
@@ -97,6 +107,13 @@ public class NaiveExceptionControlFlowStrategy implements ExceptionControlFlowSt
 	public NaiveExceptionControlFlowStrategy(EnumSet<Options> options) {
 		instanceOptions = options;
 		catchNodeStack = new Stack<>();
+	}
+
+	public NaiveExceptionControlFlowStrategy(EnumSet<Options> options, FileBasedConfiguration configuration, boolean exc) {
+		instanceOptions = options;
+		catchNodeStack = new Stack<>();
+		config = configuration;
+		this.exceptions = exc;
 	}
 
 	/**
@@ -198,14 +215,15 @@ public class NaiveExceptionControlFlowStrategy implements ExceptionControlFlowSt
 		if (catchNodeStack.isEmpty()) {
 			return;
 		}
-
 		List<ControlFlowNode> catchNodes = catchNodeStack.peek();
 
-		if (catchNodes != null) {
+		if (catchNodes != null && (config != null && config.getBoolean("finalNodes") && config.getBoolean("exceptionMode")) ||
+				this.exceptions){
 			ControlFlowGraph graph = builder.getResult();
-			catchNodes.forEach(catchNode -> {
-				graph.addEdge(source, catchNode);
-			});
+			for (ControlFlowNode n : catchNodes){
+				//graph.addEdge(builder.lastNode, n);
+				graph.addEdge(source, n);
+			}
 		}
 	}
 

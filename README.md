@@ -13,7 +13,7 @@ If you just want to try out StoneDetector, you can also have a look at the tool'
 java -Xms8G -Xmx8G -jar build/libs/StoneDetector.jar -x --directory="path/to/Java/Folder" --error-file=errors.txt 
 ```
 * StoneDetector with [BigCloneEval](https://github.com/jeffsvajlenko/BigCloneEval):
- Use `BCE_runner` as tool runner script
+  Use `BCE_runner` as tool runner script
 
 ## Docker Image
 
@@ -72,7 +72,7 @@ For example, `test,Example.java,4,18,test,Example.java,19,33` denotes the clone 
 
 ### Configuration
 
-The StoneDetector tool provides various configuration parameters, which allow you to play with its code clone detection capabilities. The tool's configuration parameters are defined in the file `config/default.properties`. 
+The StoneDetector tool provides various configuration parameters, which allow you to play with its code clone detection capabilities. The tool's configuration parameters are defined in the file `config/default.properties`.
 | Parameter | Default | Description |
 | --------- | ------- | ----------- |
 | THREADSIZE | 3 |Number of parallel threads which are used for code clone detection |
@@ -84,6 +84,10 @@ The StoneDetector tool provides various configuration parameters, which allow yo
 | USMD5 | false |Switch between MD5 or 4-byte prime number hash encoding for description sets | 
 | USEFUNCTIONNAMES | true |Whether or not method names are kept in description sets or normalized |
 | OUTPUT | true |Whether or not detected clone pairs are printed to the screen |
+|UPPERFACTOR|1.7f|Factor that indicates up to which difference in the number of paths of path sets they are compared with each other.|
+|BYTECODEBASEDCLONEDETECTION|false|Whether or not to perform clone detection within jar or class files.|
+|REGISTERCODE_STACKCODE|true|If true, bytecode-based clone detection is performed using register code, otherwise using stack code|
+|STUBBERPROCESSING|true| When working with generated files of the [Stubber](https://github.com/andre-schaefer-94/Stubber) tool, then the annotations can be read out.|
 
 ### Building
 
@@ -98,16 +102,16 @@ in the projects top-level directory, which will generate the JAR file `build/lib
 Further configuration parameters of the tool are defined in its implementation, see file [Environment.java](src/main/java/org/fsu/codeclones/Environment.java). The entry point of the tool, which is invoked when issuing scripts `run.sh` and `run_benchmark.sh` or executing the tool explicitly, is located at [SpoonBigCloneBenchDriver.java](src/main/java/org/dlr/foobar/SpoonBigCloneBenchDriver.java).
 
 The StoneDetector implementation consists of four main components:
- * Java source code parser and control flow graph generation based upon [Spoon](https://github.com/INRIA/spoon): See [SpoonBigCloneBenchDriver.java](src/main/java/org/dlr/foobar/SpoonBigCloneBenchDriver.java)
- * Dominator tree construction based upon [WALA](https://github.com/wala/WALA): See [DominatorTree.java](src/main/java/org/fsu/codeclones/DominatorTree.java)
- * Description sets encoding: See [Encoder.java](src/main/java/org/fsu/codeclones/Encoder.java), [HashEncoder.java](src/main/java/org/fsu/codeclones/HashEncoder.java),  and in particular[CompletePathEncoder.java](src/main/java/org/fsu/codeclones/CompletePathEncoder.java)
- * Metrics implementation: See [LCS.java](src/main/java/org/fsu/codeclones/LCS.java), [HammingDistance.java](src/main/java/org/fsu/codeclones/HammingDistance.java), [LevenShtein.java](src/main/java/org/fsu/codeclones/LevenShtein.java), etc.
+* Java source code parser and control flow graph generation based upon [Spoon](https://github.com/INRIA/spoon): See [SpoonBigCloneBenchDriver.java](src/main/java/org/dlr/foobar/SpoonBigCloneBenchDriver.java)
+* Dominator tree construction based upon [WALA](https://github.com/wala/WALA): See [DominatorTree.java](src/main/java/org/fsu/codeclones/DominatorTree.java)
+* Description sets encoding: See [Encoder.java](src/main/java/org/fsu/codeclones/Encoder.java), [HashEncoder.java](src/main/java/org/fsu/codeclones/HashEncoder.java),  and in particular[CompletePathEncoder.java](src/main/java/org/fsu/codeclones/CompletePathEncoder.java)
+* Metrics implementation: See [LCS.java](src/main/java/org/fsu/codeclones/LCS.java), [HammingDistance.java](src/main/java/org/fsu/codeclones/HammingDistance.java), [LevenShtein.java](src/main/java/org/fsu/codeclones/LevenShtein.java), etc.
 
 ## I want to know more
 
 That's great. Our [ICSME'21](https://www.computer.org/csdl/proceedings-article/icsme/2021/288200a070/1yNh4Mp9yE0) paper and presentation on [YouTube](https://youtu.be/GirClq1CA8w) is a good introduction into the technology behind StoneDetector. Don't hesitate to contact us if you have any questions:
- * Wolfram Amme: Wolfram.Amme@uni-jena.de 
- * André Schäfer: Andre.Schaefer@uni-jena.de 
- * Thomas Heinze: Thomas.Heinze@dhge.de 
+* Wolfram Amme: Wolfram.Amme@uni-jena.de
+* André Schäfer: Andre.Schaefer@uni-jena.de
+* Thomas Heinze: Thomas.Heinze@dhge.de
 
 Here are links to the [Spoon](https://github.com/INRIA/spoon) and [WALA](https://github.com/wala/WALA) projects, which StoneDetector has been built upon.

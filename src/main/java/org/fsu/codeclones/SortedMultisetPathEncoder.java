@@ -21,7 +21,7 @@ import java.io.IOException;  // Import the IOException class to handle errors
 import java.util.stream.Collectors;
 
 
-public class SortedMultisetPathEncoder extends Encoder implements Comparable<SortedMultisetPathEncoder> {
+public class SortedMultisetPathEncoder extends Encoder<ControlFlowNode> implements Comparable<SortedMultisetPathEncoder> {
     public List<SortedMultisetPathEncoder> content;
 
     List<Code> opKind = new ArrayList<Code>();
@@ -480,7 +480,7 @@ public class SortedMultisetPathEncoder extends Encoder implements Comparable<Sor
     }
 
     @Override
-    boolean isPathInDescriptionSet(List<Encoder> path, List<List<Encoder>> set, MetricKind metric, boolean relativ, float threshold) {
+    public boolean isPathInDescriptionSet(List<Encoder> path, List<List<Encoder>> set, MetricKind metric, boolean relativ, float threshold) {
         if (Environment.TECHNIQUE == EncoderKind.MULTISET) {
             SortedMultisetPathEncoder path_multi = (SortedMultisetPathEncoder) path.get(0);
             List<SortedMultisetPathEncoder> set_multi = new ArrayList<>();
@@ -583,12 +583,12 @@ public class SortedMultisetPathEncoder extends Encoder implements Comparable<Sor
 
 
     @Override
-    int[] getEncoding() {
+    public int[] getEncoding() {
         return encoding;
     }
 
     @Override
-    int getNumberOfEncodings() {
+    public int getNumberOfEncodings() {
         return number;
     }
 

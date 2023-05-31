@@ -10,6 +10,7 @@ import fr.inria.controlflow.ControlFlowGraph;
 import fr.inria.controlflow.BranchKind;
 import fr.inria.controlflow.ControlFlowNode;
 import fr.inria.controlflow.ControlFlowEdge;
+import org.apache.commons.configuration2.FileBasedConfiguration;
 import org.dlr.foobar.SpoonBigCloneBenchDriver;
 import spoon.reflect.code.CtExpression;
 import spoon.reflect.declaration.CtClass;
@@ -24,6 +25,9 @@ import java.util.Iterator;
 import java.util.Collections;
 
 public class DominatorTree extends ControlFlowGraph{
+
+	FileBasedConfiguration config = null;
+	boolean encodeAsInRegistercode = false;
 
     static HashMap<String,Integer> methodTable = new HashMap<String,Integer>();
     static int hashCounter = 0;
@@ -50,36 +54,75 @@ public class DominatorTree extends ControlFlowGraph{
 	return this.encodedDescriptionSet;
     }
 
-
+	public DominatorTree(AbstractGraph<ControlFlowNode> graph, FileBasedConfiguration configuration){
+		config = configuration;
+		if (config.getBoolean("encodeAsInRegistercode")){
+			encodeAsInRegistercode = true;
+		}
+		initGraph(graph);
+	}
     
     public DominatorTree(AbstractGraph<ControlFlowNode> graph) {
-	ControlFlowGraph g = (ControlFlowGraph) graph.getNodeManager();
-	EdgeManager<ControlFlowNode> edgeManager = graph.getEdgeManager();
-	ControlFlowNode root = null;
-	
-	for(ControlFlowNode n : g.vertexSet()) {
-	    if(n.getKind() != BranchKind.EXIT){
-		addNode(n);
-	    }
-	    if(n.getKind() == BranchKind.BEGIN)
-		root = n;
-	}
-	
-	for (ControlFlowNode n : vertexSet()) {
-	    
-		for (ControlFlowNode m : Iterator2Iterable.make(edgeManager.getSuccNodes(n)))
-		    if(m.getKind() != BranchKind.EXIT)
-			addEdge(n,m);
-		
-		if(edgeManager.getPredNodes(n) != null){    
-		    for (ControlFlowNode m : Iterator2Iterable.make(edgeManager.getPredNodes(n))) // Check this, do we need to calculate this. WA
-			addEdge(m,n);
-		}else
-		    addEdge(root,n); // This is because some nodes that are not the root and which have no predecessor node. See also Dominators.java at Line 152
-	}
-
-        	
+		initGraph(graph);
      }
+
+	 private void initGraph(AbstractGraph<ControlFlowNode> graph){
+		 ControlFlowGraph g = (ControlFlowGraph) graph.getNodeManager();
+		 EdgeManager<ControlFlowNode> edgeManager = graph.getEdgeManager();
+		 ControlFlowNode root = null;
+
+		 boolean specialNodes = true;
+		 if (config != null && !config.getBoolean("specialNodes")){
+			 specialNodes = false;
+		 }
+
+		 for(ControlFlowNode n : g.vertexSet()) {
+			 if (!specialNodes && (n.getKind() == BranchKind.TRY ||
+					 n.getKind() == BranchKind.CATCH || n.getKind() == BranchKind.FINALLY)){
+				 continue;
+			 }
+			 if(n.getKind() != BranchKind.EXIT){
+				 addNode(n);
+			 }
+			 if(n.getKind() == BranchKind.BEGIN){
+				 root = n;
+			 }
+		 }
+
+		 List<ControlFlowNode> sucNodes;
+		 List<ControlFlowNode> predNodes;
+
+		 if (!specialNodes){
+			 for (ControlFlowNode n : vertexSet()){
+				 sucNodes = n.sucNotFinal(edgeManager);
+				 for (ControlFlowNode suc : sucNodes){
+					 if (suc.getKind() != BranchKind.EXIT){
+						 addEdge(n, suc);
+					 }
+				 }
+				 // if a Node has no not Final / Try / Catch predecessors we will concat it to the root
+				 predNodes = n.prevNotFinal(edgeManager);
+				 if (predNodes.size() == 0 && n.getKind() != BranchKind.BEGIN){
+					 addEdge(root, n);
+				 }
+			 }
+		 }
+		 else {
+			 for (ControlFlowNode n : vertexSet()){
+				 sucNodes = n.sucNodes(edgeManager);
+				 for (ControlFlowNode suc : sucNodes){
+					 if (suc.getKind() != BranchKind.EXIT){
+						 addEdge(n, suc);
+					 }
+				 }
+				 // if a Node has no Predecessor we will concat it to the root
+				 predNodes = n.prevNodes(edgeManager);
+				 if (predNodes.size() == 0 && n.getKind() != BranchKind.BEGIN){
+					 addEdge(root, n);
+				 }
+			 }
+		 }
+	 }
 
  
       public boolean isLeafNode(ControlFlowNode n){
@@ -193,7 +236,6 @@ public class DominatorTree extends ControlFlowGraph{
 			 s.add(t);
 			 // System.out.println(i++ + ": " + t);
 		     }
-
 		 }
 	}
 
@@ -221,50 +263,49 @@ public class DominatorTree extends ControlFlowGraph{
 	    // System.out.println(i++ + ": "+ tmp);
 	}
 	descriptionSet = s;
-	//System.out.println("Vorher ");
-	//System.out.println(s);
 	return s;
     }
 
-    public List<List<Encoder>> encodePathSet(EncoderKind split, EncoderKind kind, EncoderKind sorted){ 
-
-	if(sorted == EncoderKind.SORTED)
-	    HammingDistance.SORTED = true;
-	
-	if(split == EncoderKind.SPLITTING)
-	    makePathToBeginOrMergeSet();
-	else
-	    makePathToBeginSet();
-
-	//System.out.println(descriptionSet);
-	if(kind == EncoderKind.ABSTRACT)
-	    encodedDescriptionSet = (new AbstractEncoder()).encodeDescriptionSet(descriptionSet);
-	else if(kind == EncoderKind.COMPLETEPATH)
-	    encodedDescriptionSet = (new CompletePathEncoder()).encodeDescriptionSet(descriptionSet);
-	else if(kind == EncoderKind.HASH)
-	    encodedDescriptionSet = (new HashEncoder()).encodeDescriptionSet(descriptionSet);
-	else
-	    Assertions.UNREACHABLE("Argument is wrong.");
-
-	for (int i=0;i<anonymInnerClasses.size();i++)
-	{
-		for (Object m : anonymInnerClasses.get(i).getTypeMembers()) {
-			try {
-				SpoonBigCloneBenchDriver spoonBigCloneBenchDriver=new SpoonBigCloneBenchDriver("");
-				spoonBigCloneBenchDriver.setSkipClones(true);
-				List<List<Encoder>> pathSetFromInnerAnonymousMethod=spoonBigCloneBenchDriver.extractGraphs(anonymInnerClasses.get(i), m, "");
-				for (List<Encoder> listEncoder :pathSetFromInnerAnonymousMethod)
-					for (Encoder e : listEncoder)
-						encodedDescriptionSet.get(anonymInnerClassesPathID.get(i)).add(e);
-			} catch (Throwable e) {
-			}
+    public List<List<Encoder>> encodePathSet(EncoderKind split, EncoderKind kind, EncoderKind sorted) throws Exception {
+		if(sorted == EncoderKind.SORTED) {
+			HammingDistance.SORTED = true;
 		}
-	}
-	anonymInnerClasses=new ArrayList<CtClass>();;
+		if(split == EncoderKind.SPLITTING) {
+			makePathToBeginOrMergeSet();
+		}
+		else {
+			makePathToBeginSet();
+		}
+		//System.out.println(descriptionSet);
+		if(kind == EncoderKind.ABSTRACT) {
+			encodedDescriptionSet = (new AbstractEncoder()).encodeDescriptionSet(descriptionSet);
+		}
+		else if(kind == EncoderKind.COMPLETEPATH) {
+			encodedDescriptionSet = (new CompletePathEncoder()).encodeDescriptionSet(descriptionSet);
+		}
+		else if(kind == EncoderKind.HASH) {
+			encodedDescriptionSet = (new HashEncoder(config)).encodeDescriptionSet(descriptionSet);
+		}
+		else {
+			Assertions.UNREACHABLE("Argument is wrong.");
+		}
+		/*if (config != null && !config.getBoolean("encodeAsInRegistercode")){
+			for (int i=0;i<anonymInnerClasses.size();i++)
+			{
+				for (Object m : anonymInnerClasses.get(i).getTypeMembers()) {
+					try {
+						SpoonBigCloneBenchDriver spoonBigCloneBenchDriver=new SpoonBigCloneBenchDriver("");
+						spoonBigCloneBenchDriver.setSkipClones(true);
+						List<List<Encoder>> pathSetFromInnerAnonymousMethod=spoonBigCloneBenchDriver.extractGraphs(anonymInnerClasses.get(i), m, "");
+						for (List<Encoder> listEncoder :pathSetFromInnerAnonymousMethod)
+							for (Encoder e : listEncoder)
+								encodedDescriptionSet.get(anonymInnerClassesPathID.get(i)).add(e);
+					} catch (Throwable ignored) {}
+				}
+			}
 
-	return encodedDescriptionSet;
-
+		}*/
+		anonymInnerClasses=new ArrayList<>();;
+		return encodedDescriptionSet;
     }
-
-    
 }

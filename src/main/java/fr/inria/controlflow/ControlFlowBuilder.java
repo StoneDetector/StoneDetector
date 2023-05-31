@@ -21,6 +21,8 @@
  */
 package fr.inria.controlflow;
 
+import org.apache.commons.configuration2.FileBasedConfiguration;
+import org.fsu.codeclones.Environment;
 import spoon.reflect.code.CtAnnotationFieldAccess;
 import spoon.reflect.code.CtArrayRead;
 import spoon.reflect.code.CtArrayWrite;
@@ -95,6 +97,7 @@ import spoon.reflect.declaration.CtParameter;
 import spoon.reflect.declaration.CtProvidedService;
 import spoon.reflect.declaration.CtTypeParameter;
 import spoon.reflect.declaration.CtUsedService;
+import spoon.reflect.factory.Factory;
 import spoon.reflect.reference.CtArrayTypeReference;
 import spoon.reflect.reference.CtCatchVariableReference;
 import spoon.reflect.reference.CtExecutableReference;
@@ -111,8 +114,10 @@ import spoon.reflect.reference.CtUnboundVariableReference;
 import spoon.reflect.reference.CtWildcardReference;
 import spoon.reflect.visitor.CtVisitor;
 
+import javax.swing.text.html.HTMLDocument;
 import java.lang.annotation.Annotation;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
 
@@ -123,6 +128,8 @@ import java.util.Stack;
  */
 public class ControlFlowBuilder implements CtVisitor {
     final boolean MOD = false;
+
+	FileBasedConfiguration config = null;
 
 	ControlFlowGraph result = new ControlFlowGraph(ControlFlowEdge.class);
 
@@ -144,9 +151,9 @@ public class ControlFlowBuilder implements CtVisitor {
 	 */
 	ExceptionControlFlowStrategy exceptionControlFlowStrategy;
 
-        static HashMap<String,Integer> uselessMethods = new HashMap<String, Integer>();
+        static HashMap<String,Integer> uselessMethods = new HashMap<>();
 
-    HashMap<CtLocalVariable, LocalVariableInfo> localVarDefs = new HashMap<CtLocalVariable, LocalVariableInfo> ();
+    HashMap<CtLocalVariable, LocalVariableInfo> localVarDefs = new HashMap<> ();
 
 	/**
 	 * Set strategy for modeling exception control flow.
@@ -187,6 +194,34 @@ public class ControlFlowBuilder implements CtVisitor {
 	 * @param s starting point
 	 * @return control flow graph
 	 */
+	public ControlFlowGraph build(CtElement s, FileBasedConfiguration configuration){
+		this.config = configuration;
+
+		if (config.getBoolean("parameterNodes") && Environment.STUBBERPROCESSING){
+			String[] str_list = s.toString().split("\n");
+			boolean done = false;
+			for (String line : str_list) {
+				if (done) {
+					Factory factory = s.getFactory();
+					CtCodeSnippetStatement e = factory.Core().createCodeSnippetStatement();
+
+					// get parameter count
+					e.setValue(Integer.toString(line.split("\\(")[1].split(",").length));
+
+					ControlFlowNode parameterNode = new ControlFlowNode(e, result, BranchKind.STATEMENT);
+					tryAddEdge(lastNode, parameterNode);
+					lastNode = parameterNode;
+					break;
+				}
+				if (line.contains("SubFolder") && line.contains("FileName") && line.contains("StartLine") &&
+						line.contains("EndLine")) {
+					done = true;
+				}
+			}
+		}
+		return build(s);
+	}
+
 	public ControlFlowGraph build(CtElement s) {
 		s.accept(this);
 		tryAddEdge(lastNode, exitNode);
@@ -195,23 +230,15 @@ public class ControlFlowBuilder implements CtVisitor {
 			exceptionControlFlowStrategy.postProcess(result);
 		}
 		if(MOD){
-		    for(CtLocalVariable localVarDef : localVarDefs.keySet())
-			{
+		    for(CtLocalVariable localVarDef : localVarDefs.keySet()) {
 			    LocalVariableInfo info =  localVarDefs.get(localVarDef);
-			    //System.out.println(localVarDef.getAssignment());
-			    //System.out.println(localVarDef.getAssignment().getClass());
-			    
 			    if(info.numbers == 1 && !(localVarDef.getAssignment() instanceof CtInvocation) ){
-				result.removeNodeAndEdges(info.node);
-				//System.out.println("Out " + info);
+					result.removeNodeAndEdges(info.node);
 			    }
-			    // else
-				//System.out.println("In " +info);
 			}
-		    //System.out.println(result);
 		    localVarDefs.clear();
 		}
-	        return result;
+		return result;
 	}
 
 	private void visitConditional(CtElement parent, CtConditional conditional) {

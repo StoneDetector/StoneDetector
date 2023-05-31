@@ -1,0 +1,136 @@
+// If true, the bytecode instruction is used for clone detection
+// If false, the bytecoe instruction is ignored for clone detection
+//Identity=false
+FieldGetPutStaticGet=false
+PushPopDup=false
+InstanceOfCast=false
+Compare=false
+InitAppendToString=false
+
+LoadAndInit=false
+Store=true
+
+//======================================================================================================================
+//======================================================================================================================
+//===============================================Patterns of RegisterCode===============================================
+//======================================================================================================================
+//======================================================================================================================
+
+
+// If true, the bytecode instruction is used for clone detection
+// If false, the bytecode instruction is ignored for clone detection
+// This config file is used in HashEncoderRegisterCode.java (HE) and StandardEncoderRegisterCode.java (SE)
+
+/************************- Global Patterns -************************/
+
+
+// Exception Modes
+// with exceptions or without > false means no exception
+// ByteCodePathExtraction, extractMethod
+exceptionMode = false
+//check
+
+// if we want to consider exceptions in the brief unit graph as well
+// doesn't do anything if exceptionMode = true
+// ControlFlowBriefUnitGraph, constructor
+connectPathBriefUnitGraph = false
+//check
+
+// BytecodePathExtractionMode
+// BytecodePathExtraction - extract(...)
+/* options: (1) allFunctions (add all paths functions and subfunctions to the return list)
+            (2) mainFunctions (return only mainFunctions but append the subfunction paths to the encoded path set)
+            (3) allFunctionsButAppend (return all mainFunctions but append the subfunction paths to the encoded path set
+                                        , return the subfunctions as well)*/
+pathExtractionMode = 2
+//check
+
+
+// HE, encodeDescriptionSetStatic
+removeSimilarPaths = true
+minPathDiff = 2
+//inserted
+
+// count exceptions
+// HashEncoderRegisterCode, areTwoDescriptionSetsSimilar
+// ByteCodePathExtraction, extractMethod
+countExceptions = true
+scaling = 0.3
+//inserted
+
+/***********************- General Patterns -*************************/
+
+// stack push etc..., HE: encodeDescriptionSetStatic -> basic Operation Concatenation
+// ConcatenationNodes?
+// HashEncoderRegisterCode, encodeDescriptionSetStatic
+virtualNodes = false
+ignoreVirtualNodes = false
+//not possible
+
+// called if String needs to be built from separate paths > followed by VirtualNodes (Stack pushes)
+// SE: virtualInvoke / invokeNode / encodeVirtualUnits
+// ignore StringBuilders f.e. virtualinvoke $r16.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>($r17)
+// set all stringBuilder nodes with Assign, String -> only if set to false
+stringBuilder = false
+//InitAppendToString
+
+// if we compare things there often are multiple virtual Nodes before, we ignore them if this flag is true
+// simplify virtualNodes has to be set to true for this
+// HashEncoderRegisterCode, encodeDescriptionSetStatic
+ifNodeSimplify = false
+//not possible
+
+/**********************- Special Patterns-**************************/
+
+// @this, @exceptions, @parameters, SE: identityNode
+// @this are not relevant (@this happens everytime)
+// @caughtexeption are relevant
+// StandardEncoderRegisterCode, identityNode
+parameterNodes = false
+//check
+
+// Constants, SE: assignNode
+constants = false
+//inserted
+
+// SE: assignNode
+// read Field of Class > f.e. $r5 = r0.<_PrimeFactors.PrimeFactors: java.lang.Integer i_8>
+fieldread = false
+//check
+
+// SE: specialInvoke
+// f.e. specialinvoke $r2.<_PrimeFactors.StubClass.StubClass: void <init>()>()
+// should be false since this shouldn't play a part in the evaluation
+specialInvoke = false
+//check
+
+// ignore StaticCalls
+// StandardEncoderRegisterCode, staticInvoke
+staticCall = false
+//check
+
+// check only the right operation of an assign node (not the left) -> false means check both
+// SERC, assign
+checkRightAssignNode = true
+//not possible
+
+// if Node Compare Operator -> if there is
+// ==, !=, <, <=, > or >= we replace it with Code.COMP
+// (if flag is set to false)
+// StandardEncoderRegisterCode, ifNode
+ifNodeCompareOperator = false
+//inserted
+
+
+// if set to false, Code.NEW is ignored
+// StandardEncoderRegisterCode, assignNode
+newCode = false
+
+// ignore print commands
+// HashEncoderRegisterCode, encodeDescriptionSetStatic
+println = false
+//inserted
+
+/******************************- create Dot / CFG or Dominator-Tree graphs -*************************/
+createCFGGraph = false
+createDominatorTreeGraph = false

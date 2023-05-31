@@ -7,9 +7,9 @@ import java.util.Iterator;
 
 public class ModifiedHammingDistance{
 
-    static float THRESHOLD = (float) 0;
-    static boolean RELATIV = true;
-    static boolean SORTED = false;
+    static public float THRESHOLD = (float) 0;
+    static public boolean RELATIV = true;
+    static public boolean SORTED = false;
 	
 
     static float modifiedHammingDistance(int[] a1, int[] a2){

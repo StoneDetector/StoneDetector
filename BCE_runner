@@ -1,4 +1,4 @@
-#!/bin/bash
+##!/bin/bash
 
 cd "$(dirname $0)"
-java -Xms8G -Xmx8G  -jar build/libs/StoneDetector.jar -x --directory="$1" --error-file=errors.txt 2>/dev/null
+java -Xms8G -Xmx8G -jar build/libs/StoneDetector.jar -x --directory="$1" --error-file=errors.txt 2>/dev/null

@@ -38,7 +38,7 @@ import spoon.support.reflect.code.CtBinaryOperatorImpl;
 import spoon.reflect.code.BinaryOperatorKind;
 import spoon.reflect.code.UnaryOperatorKind;
 
-public class AbstractEncoder extends Encoder{
+public class AbstractEncoder extends Encoder<ControlFlowNode>{
     Code kind;
     int number = 0; // Number of code elements
     int [] abstractEncoding;

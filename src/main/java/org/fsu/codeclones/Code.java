@@ -1,9 +1,13 @@
 package org.fsu.codeclones;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * This enumeration defines all the kinds of binary operators.
  */
 public enum Code {
+
     	/**
 	 * assignment statement.
 	 */
@@ -343,5 +347,36 @@ public enum Code {
 	FINALLY,
 	TRY,
 	CLASSDEFINITION,
-	HASHVALUE
+	HASHVALUE,
+
+	GOTO,
+	SWITCH,
+	MONITOR,
+	SPECIALCALL,
+	STATICCALL,
+	VIRTUALCALL,
+	LENGTHOF,
+	SHIFTL,
+	SHIFTR,
+	CAST,
+	STATICFIELD,
+	COMP,
+	COMPG,
+	LONG,
+	INTERFACECALL,
+	CLASS,
+	IDENTITY,
+	LOAD,
+	STORE,
+	FIELDGET,
+	FIELDPUT,
+	STATICGET,
+	POP,
+	DUP,
+	PUSH,
+	EXITMONITOR,
+	INSTANCECAST,
+	CMPG,
+	CMPL,
+	CMP
 }

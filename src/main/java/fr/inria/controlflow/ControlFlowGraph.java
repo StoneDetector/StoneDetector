@@ -21,6 +21,7 @@
  */
 package fr.inria.controlflow;
 
+import heros.utilities.JsonArray;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import spoon.reflect.declaration.CtElement;
 import com.ibm.wala.util.graph.Graph;
@@ -112,6 +113,8 @@ public class ControlFlowGraph extends DefaultDirectedGraph<ControlFlowNode, Cont
 		}
 		return result;
 	}
+
+
 
     
 	@Override
@@ -243,7 +246,7 @@ public class ControlFlowGraph extends DefaultDirectedGraph<ControlFlowNode, Cont
     }
      @Override
     public boolean containsNode(ControlFlowNode n){
-	return containsVertex​(n);
+	return containsVertex(n);
     }
 
  @Override
@@ -257,7 +260,9 @@ public class ControlFlowGraph extends DefaultDirectedGraph<ControlFlowNode, Cont
     public int getNumberOfNodes(){
 	return vertexSet().size();
     }
-     @Override
+
+
+    @Override
     public Stream<ControlFlowNode> stream()
     {return vertexSet().stream();}
 
@@ -302,14 +307,14 @@ public class ControlFlowGraph extends DefaultDirectedGraph<ControlFlowNode, Cont
     
     @Override
     public int getSuccNodeCount(ControlFlowNode n){
-    	Set<ControlFlowEdge>  s = outgoingEdgesOf​(n);
+    	Set<ControlFlowEdge>  s = outgoingEdgesOf(n);
 	return s.size();
     }
     
     @Override
     public Iterator<ControlFlowNode> getSuccNodes(ControlFlowNode n){
 	
-	Set<ControlFlowEdge>  s = outgoingEdgesOf​(n);
+	Set<ControlFlowEdge>  s = outgoingEdgesOf(n);
         ControlFlowEdge[] a = s.toArray(new ControlFlowEdge[0]);
 	ArrayList<ControlFlowNode> list = new ArrayList<ControlFlowNode>();
 	for(int i=0; i <a.length;i++)
@@ -320,7 +325,7 @@ public class ControlFlowGraph extends DefaultDirectedGraph<ControlFlowNode, Cont
     @Override
     public Iterator<ControlFlowNode> getPredNodes(ControlFlowNode n){
 	
-	Set<ControlFlowEdge>  s = incomingEdgesOf​(n);
+	Set<ControlFlowEdge>  s = incomingEdgesOf(n);
         ControlFlowEdge[] a = s.toArray(new ControlFlowEdge[0]);
 	ArrayList<ControlFlowNode> list = new ArrayList<ControlFlowNode>();
 	for(int i=0; i <a.length;i++)

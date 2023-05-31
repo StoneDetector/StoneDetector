@@ -21,6 +21,8 @@
  */
 package fr.inria.controlflow;
 
+import com.ibm.wala.util.collections.Iterator2Iterable;
+import com.ibm.wala.util.graph.EdgeManager;
 import spoon.reflect.declaration.CtElement;
 
 import java.util.ArrayList;
@@ -151,6 +153,60 @@ public class ControlFlowNode {
 			transfer();
 		}
 		return output;
+	}
+
+	public List<ControlFlowNode> prevNodes(EdgeManager<ControlFlowNode> edgeManager){
+		ArrayList<ControlFlowNode> prevNodes = new ArrayList<>();
+		if (edgeManager.getPredNodes(this) != null){
+			for (ControlFlowNode m : Iterator2Iterable.make(edgeManager.getPredNodes(this))) {
+				prevNodes.add(m);
+			}
+		}
+		return prevNodes;
+	}
+
+	public List<ControlFlowNode> sucNodes(EdgeManager<ControlFlowNode> edgeManager){
+		ArrayList<ControlFlowNode> sucNodes = new ArrayList<>();
+		if (edgeManager.getSuccNodes(this) != null){
+			for (ControlFlowNode m : Iterator2Iterable.make(edgeManager.getSuccNodes(this))) {
+				sucNodes.add(m);
+			}
+		}
+		return sucNodes;
+	}
+
+	public List<ControlFlowNode> prevNotFinal(EdgeManager<ControlFlowNode> edgeManager){
+		// returns all Previous Nodes which are not final, try or catch Nodes
+		List<ControlFlowNode> returnNodes = new ArrayList<>();
+
+		List<ControlFlowNode> prevNodes = this.prevNodes(edgeManager);
+		for (ControlFlowNode prev : prevNodes){
+			if (prev.getKind() == BranchKind.CATCH || prev.getKind() == BranchKind.FINALLY ||
+					prev.getKind() == BranchKind.TRY){
+				returnNodes.addAll(prev.prevNotFinal(edgeManager));
+			}
+			else {
+				returnNodes.add(prev);
+			}
+		}
+		return returnNodes;
+	}
+
+	public List<ControlFlowNode> sucNotFinal(EdgeManager<ControlFlowNode> edgeManager){
+		// returns all Previous Nodes which are not final, try or catch Nodes
+		List<ControlFlowNode> returnNodes = new ArrayList<>();
+
+		List<ControlFlowNode> sucNodes = this.sucNodes(edgeManager);
+		for (ControlFlowNode suc : sucNodes){
+			if (suc.getKind() == BranchKind.CATCH || suc.getKind() == BranchKind.FINALLY ||
+					suc.getKind() == BranchKind.TRY){
+				returnNodes.addAll(suc.sucNotFinal(edgeManager));
+			}
+			else {
+				returnNodes.add(suc);
+			}
+		}
+		return returnNodes;
 	}
 
 	public CtElement getStatement() {

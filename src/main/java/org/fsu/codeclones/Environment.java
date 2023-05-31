@@ -24,13 +24,13 @@ public abstract class Environment {
     public static EncoderKind SETORDER = EncoderKind.UNSORTED;
 
     public static float THRESHOLD = 0.3F;
-    
+
     // Default value: LCS: 0.3 Levenshtein: 0.35
 
-    
+
     // mininml size of tested Funktions
     public static int MINSIZE = 15;
-    
+
     // suoprting Call names
     public static boolean SUPPORTCALLNAMES = true;
 
@@ -38,21 +38,21 @@ public abstract class Environment {
 
     public static boolean LINEARSUBCLONES = false;
 
-    // linear factor default Unsplitting 1.4 
+    // linear factor default Unsplitting 1.4
     public static double LINEARFACTOR = 1.4;
     public static int MINLINEARSUBCLONE = 5;
-    
+
     // max no. of paths in description sets (for calculations of upper paths)
     public static int WIDTHLOWERNO = 5;
     // Default value: 5
 
-     // faktor for the  no. of upper paths in description sets
-     public static float WIDTHUPPERFAKTOR = 1.5F;
+    // faktor for the  no. of upper paths in description sets
+    public static float WIDTHUPPERFAKTOR = 1.5F;
     // Default value: 1.5
-        
+
     // min number of nodes in paths of description sets
     public static int MINNODESNO=3;
-    
+
     //Default values: Modified-Unsorted Splitting: 1 Modified-Unsorted Unsplitting 3, LCS Splitting 1 LCS Unsplitting 3 Levenshtein Spliiting  1, Levenshtein Unsplitting 3
 
     //max difference when comparing path sets: default value 7
@@ -60,7 +60,7 @@ public abstract class Environment {
 
     // relative metrics
     public static boolean RELATIVE = true;
-    
+
     // sorted description sets
     public static boolean SORTED = false;
 
@@ -73,4 +73,18 @@ public abstract class Environment {
 
     public static boolean MD5 = false;
 
+
+    public static boolean BYTECODEBASED=true;
+
+    //for ByteCode
+    public static float BREMOVESMALLPATHES =0.3f;
+    public static float BPATHESDIFF =0.05f;
+
+    //for RegisterCode
+    //float BREMOVESMALLPATHES =0.4f;
+    //float BPATHESDIFF =0.3f;
+
+    public static boolean USEREGISTERCODE=false;
+
+    public static boolean STUBBERPROCESSING=false;
 }
