@@ -70,8 +70,8 @@ public class ByteCodePathExtraction {
 
         Date start = new Date(System.currentTimeMillis());
         List<MethodTuple> methodTupleList = new ArrayList<>();
-
-        // traverse all files in the working directory
+        methodTupleList.addAll(extract(dir.getPath(),minLine,pathExtractionMethod, pathEncoderKind, configuration));
+        /*// traverse all files in the working directory
         for (File file: directoryListing) {
             if (file.isDirectory())
             {
@@ -79,7 +79,7 @@ public class ByteCodePathExtraction {
                 // methodTupleList will contain all Methods from every subdirectory in Test
                 methodTupleList.addAll(extract(file.getPath(),minLine,pathExtractionMethod, pathEncoderKind, configuration));
             }
-        }
+        }*/
         Date end = new Date(System.currentTimeMillis());
         logger.info("(ByteCodePathExtraction) START: " + formatter.format(start));
         logger.info("(ByteCodePathExtraction) END: " + formatter.format(end));

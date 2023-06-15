@@ -1,6 +1,6 @@
 import java.util.Random;
 
-public class Main {
+public class Example {
     int[][] fillMatrixRandom1(int matrix[][])
     {
         Random random = new Random(1);
