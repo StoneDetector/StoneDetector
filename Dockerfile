@@ -27,6 +27,9 @@ COPY --from=build /home/gradle/src/build/libs/*.jar /StoneDetector/build/libs/St
 COPY --from=build /home/gradle/src/test/Example.java /StoneDetector/test/Example.java
 COPY --from=build /home/gradle/src/test/Example.class /StoneDetector/test/Example.class
 COPY --from=build /home/gradle/src/config/default.properties /StoneDetector/config/default.properties
+COPY --from=build /home/gradle/src/config/Patterns/ConfigByteCodePatterns /StoneDetector/config/Patterns/ConfigByteCodePatterns
+COPY --from=build /home/gradle/src/config/Patterns/ConfigRegisterCodePatterns /StoneDetector/config/Patterns/ConfigRegisterCodePatterns
+COPY --from=build /home/gradle/src/config/Patterns/ConfigSourceCodePatterns /StoneDetector/config/Patterns/ConfigSourceCodePatterns
 COPY --from=build /home/gradle/src/errors.txt /StoneDetector/errors.txt
 COPY --from=build /home/gradle/src/README.md /StoneDetector/README.md
 COPY --from=build /home/gradle/src/BCE_runner /StoneDetector/BCE_runner
@@ -41,6 +44,7 @@ WORKDIR /StoneDetector/BigCloneEval/ijadataset
 RUN tar zxvf IJaDataset_BCEvalVersion.tar.gz
 WORKDIR /StoneDetector/BigCloneEval/commands
 RUN ./init
+RUN ./registerTool -n="StoneDetector" -d "StoneDetector"
 
 WORKDIR /StoneDetector
 RUN chmod +x run.sh
