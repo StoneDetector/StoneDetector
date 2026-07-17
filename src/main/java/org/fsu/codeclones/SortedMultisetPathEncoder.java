@@ -28,6 +28,7 @@ public class SortedMultisetPathEncoder extends Encoder<ControlFlowNode> implemen
     int[] encoding;
     int number = 0; // Number of code elements
     int hashNumber; // Todo: That should been an IntList
+    List<Integer> hashValues = new ArrayList<>();
     Integer hashValue;
     float ARGUMENTWEIGHT=1.0F-Environment.THRESHOLD;
     boolean PERFECTMATCH=true;
@@ -98,18 +99,17 @@ public class SortedMultisetPathEncoder extends Encoder<ControlFlowNode> implemen
         }
 
         if (e == null || e.getClass() == null) {
-            System.out.println(e);
-            return;
+            Assertions.UNREACHABLE("Cannot encode a control-flow node without a statement");
         }
 
         if (ht == null || ht.get(e.getClass().toString()) == null) {
-            System.out.println("++++++++++++++++++++++++++++++++++++++++++" + ht.get(e.getClass().toString()));
-
-
-            System.out.println("++++++++++++++++++++++++++++++++++++++++++" + e);
-            System.out.println("++++++++++++++++++++++++++++++++++++++++++" + e.getClass());
-
-            return;
+            if (e instanceof CtCasePattern) {
+                getOperators((CtCasePattern) e, opKind);
+                number += opKind.size();
+                setEncodingArray(opKind.size());
+                return;
+            }
+            Assertions.UNREACHABLE("Cannot encode statement " + e.getClass().getName());
         }
 
         //System.out.println("No. " + e.getClass().toString() + " "+ e);
@@ -235,6 +235,15 @@ public class SortedMultisetPathEncoder extends Encoder<ControlFlowNode> implemen
         if (value == null)
             return;
 
+        if (value instanceof CtOperatorAssignment<?, ?>) {
+            CtOperatorAssignment<?, ?> assignment = (CtOperatorAssignment<?, ?>) value;
+            list.add(Code.ASSIGN);
+            getOperators(assignment.getAssigned(), list);
+            list.add(binaryOperatorToCode(assignment.getKind()));
+            getOperators(assignment.getAssigned(), list);
+            getOperators(assignment.getAssignment(), list);
+            return;
+        }
         if (value instanceof CtAssignment) {
             list.add(Code.ASSIGN);
             CtAssignment assign = ((CtAssignment) value);
@@ -260,13 +269,7 @@ public class SortedMultisetPathEncoder extends Encoder<ControlFlowNode> implemen
 	    String clazz = ((CtNewArray)value).getType() + "" + ((CtNewArray)value).getElements();
 	    //System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " + clazz);
 
-	    Integer number = DominatorTree.methodTable.get(clazz);
-	    if (number == null ){
-	    	number = DominatorTree.hashCounter++;
-	    	DominatorTree.methodTable.put(clazz, number);
-	    }
-
-	    hashNumber = number.intValue();
+	    hashNumber = DominatorTree.methodCode(clazz);
 	    //System.out.println(hashNumber);*/
             return;
         } else if (value instanceof CtLiteral) {
@@ -312,13 +315,7 @@ public class SortedMultisetPathEncoder extends Encoder<ControlFlowNode> implemen
 	    String target = ((CtFieldAccess)value).getVariable().toString();
 	    //System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " + target);
 
-	    Integer number = DominatorTree.methodTable.get(target);
-	    if (number == null ){
-	    	number = DominatorTree.hashCounter++;
-	    	DominatorTree.methodTable.put(target, number);
-	    }
-
-	    hashNumber = number.intValue();
+	    hashNumber = DominatorTree.methodCode(target);
 	    //System.out.println(hashNumber);*/
             return;
         } else if (value instanceof CtFieldWrite) {
@@ -328,13 +325,7 @@ public class SortedMultisetPathEncoder extends Encoder<ControlFlowNode> implemen
 	    String target = ((CtFieldAccess)value).getVariable().toString();
 	    //System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " + target);
 
-	    Integer number = DominatorTree.methodTable.get(target);
-	    if (number == null ){
-	    	number = DominatorTree.hashCounter++;
-	    	DominatorTree.methodTable.put(target, number);
-	    }
-
-	    hashNumber = number.intValue();
+	    hashNumber = DominatorTree.methodCode(target);
 	    //System.out.println(hashNumber);
 	    //System.out.println(value);*/
 
@@ -350,21 +341,19 @@ public class SortedMultisetPathEncoder extends Encoder<ControlFlowNode> implemen
                 String method = inv.getExecutable().toString().split("\\(")[0];
                 //System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " + method);
 
-                Integer number = DominatorTree.methodTable.get(method);
-                if (number == null) {
-                    number = DominatorTree.hashCounter++;
-                    DominatorTree.methodTable.put(method, number);
-                }
-
-                hashNumber = number.intValue();
+                hashValues.add(DominatorTree.methodCode(method));
             }
             list.add(numberToCode(inv.getArguments().size()));
             for (CtExpression m : (List<CtExpression>) inv.getArguments())
                 getOperators(m, list);
             return;
         } else if (value instanceof CtConstructorCall) {
+            CtConstructorCall<?> constructorCall = (CtConstructorCall<?>) value;
             list.add(Code.NEW);
-            list.add(numberToCode(((CtConstructorCall) value).getArguments().size()));
+            list.add(numberToCode(constructorCall.getArguments().size()));
+            for (CtExpression<?> argument : constructorCall.getArguments()) {
+                getOperators(argument, list);
+            }
 
             return;
 
@@ -392,18 +381,87 @@ public class SortedMultisetPathEncoder extends Encoder<ControlFlowNode> implemen
             list.add(unaryOperatorToCode(((CtUnaryOperator) value).getKind()));
             getOperators(((CtUnaryOperator) value).getOperand(), list);
             return;
+        } else if (value instanceof CtLambda) {
+            CtLambda<?> lambda = (CtLambda<?>) value;
+            list.add(Code.EXPR);
+            list.add(numberToCode(lambda.getParameters().size()));
+            getOperators(lambda.getExpression(), list);
+            getStatementOperators(lambda.getBody(), list);
+            return;
+        } else if (value instanceof CtExecutableReferenceExpression) {
+            CtExecutableReferenceExpression<?, ?> reference =
+                    (CtExecutableReferenceExpression<?, ?>) value;
+            list.add(Code.CALL);
+            if (Environment.SUPPORTCALLNAMES) {
+                list.add(Code.HASHVALUE);
+                String method = methodReferenceIdentity(reference);
+                hashValues.add(DominatorTree.methodCode(method));
+            }
+            list.add(numberToCode(reference.getExecutable().getParameters().size()));
+            getOperators(reference.getTarget(), list);
+            return;
+        } else if (value instanceof CtTypePattern) {
+            list.add(Code.TYPE);
+            return;
+        } else if (value instanceof CtCasePattern) {
+            list.add(Code.TYPE);
+            CtPattern pattern = ((CtCasePattern) value).getPattern();
+            if (pattern instanceof CtExpression) {
+                getOperators((CtExpression<?>) pattern, list);
+            }
+            return;
+        } else if (value instanceof CtRecordPattern) {
+            list.add(Code.TYPE);
+            for (CtPattern pattern : ((CtRecordPattern) value).getPatternList()) {
+                if (pattern instanceof CtExpression) {
+                    getOperators((CtExpression<?>) pattern, list);
+                }
+            }
+            return;
+        } else if (value instanceof CtUnnamedPattern) {
+            list.add(Code.VAR);
+            return;
+        } else if (value instanceof CtSwitchExpression) {
+            CtSwitchExpression<?, ?> switchExpression = (CtSwitchExpression<?, ?>) value;
+            list.add(Code.SWITCH);
+            getOperators(switchExpression.getSelector(), list);
+            for (CtCase<?> switchCase : switchExpression.getCases()) {
+                for (CtExpression<?> caseExpression : switchCase.getCaseExpressions()) {
+                    getOperators(caseExpression, list);
+                }
+                getOperators(switchCase.getGuard(), list);
+                for (CtStatement statement : switchCase.getStatements()) {
+                    getStatementOperators(statement, list);
+                }
+            }
+            return;
         }
 
-        Assertions.UNREACHABLE("Cannot find operator");
+        Assertions.UNREACHABLE("Cannot find operator " + value.getClass().getName());
         //System.out.println("Not knowm");
 
     }
 
+    private void getStatementOperators(CtStatement statement, List<Code> list) {
+        new StatementOperatorScanner(list, true) {
+            @Override
+            protected void encodeExpression(CtExpression<?> expression) {
+                getOperators(expression, list);
+            }
+
+            @Override
+            protected void encodeOperatorAssignment(CtOperatorAssignment<?, ?> assignment) {
+                getOperators(assignment, list);
+            }
+        }.scanStatement(statement);
+    }
+
     private void setEncodingArray(int length) {
         encoding = new int[length];
+        int hashIndex = 0;
         for (int i = 0; i < encoding.length; i++) {
             if (opKind.get(i) == Code.HASHVALUE)
-                encoding[i] = hashNumber;
+                encoding[i] = hashIndex < hashValues.size() ? hashValues.get(hashIndex++) : hashNumber;
             else
                 encoding[i] = opKind.get(i).ordinal();
         }

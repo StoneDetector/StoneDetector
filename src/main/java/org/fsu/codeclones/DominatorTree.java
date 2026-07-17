@@ -29,8 +29,18 @@ public class DominatorTree extends ControlFlowGraph{
 	FileBasedConfiguration config = null;
 	boolean encodeAsInRegistercode = false;
 
-    static HashMap<String,Integer> methodTable = new HashMap<String,Integer>();
-    static int hashCounter = 0;
+    private static final HashMap<String,Integer> methodTable = new HashMap<String,Integer>();
+    private static int hashCounter = 0;
+
+    static synchronized int methodCode(String method) {
+        Integer existing = methodTable.get(method);
+        if (existing != null) {
+            return existing;
+        }
+        int assigned = hashCounter++;
+        methodTable.put(method, assigned);
+        return assigned;
+    }
     private List<CtClass> anonymInnerClasses=new ArrayList<CtClass>();
 	private List<Integer> anonymInnerClassesPathID=new ArrayList<Integer>();
 	

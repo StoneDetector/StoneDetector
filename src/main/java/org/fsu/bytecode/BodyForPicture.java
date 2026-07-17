@@ -14,4 +14,9 @@ public class BodyForPicture extends Body {
     public Object clone() {
         return null;
     }
+
+    @Override
+    public Object clone(boolean noLocalsClone) {
+        return null;
+    }
 }

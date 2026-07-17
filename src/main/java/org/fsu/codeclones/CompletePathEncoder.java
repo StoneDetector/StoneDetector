@@ -31,6 +31,16 @@ import spoon.reflect.code.CtThisAccess;
 import spoon.reflect.code.CtTypeAccess;
 import spoon.reflect.code.CtReturn;
 import spoon.reflect.code.CtAssert;
+import spoon.reflect.code.CtCase;
+import spoon.reflect.code.CtCasePattern;
+import spoon.reflect.code.CtExecutableReferenceExpression;
+import spoon.reflect.code.CtLambda;
+import spoon.reflect.code.CtPattern;
+import spoon.reflect.code.CtRecordPattern;
+import spoon.reflect.code.CtStatement;
+import spoon.reflect.code.CtSwitchExpression;
+import spoon.reflect.code.CtTypePattern;
+import spoon.reflect.code.CtUnnamedPattern;
 import spoon.support.reflect.code.CtBinaryOperatorImpl;
 import spoon.reflect.code.BinaryOperatorKind;
 import spoon.reflect.code.UnaryOperatorKind;
@@ -40,6 +50,7 @@ public class CompletePathEncoder extends Encoder<ControlFlowNode>{
     
     List<Code> opKind = new ArrayList<>();
 	List<String> functionNames = new ArrayList<>();
+	List<Integer> hashValues = new ArrayList<>();
 
     int [] encoding;
     int number = 0; // Number of code elements
@@ -172,19 +183,17 @@ public class CompletePathEncoder extends Encoder<ControlFlowNode>{
 	}
 
 	if(e == null || e.getClass() == null){
-	    System.out.println(e);
-	    return;
+	    Assertions.UNREACHABLE("Cannot encode a control-flow node without a statement");
 	}
 
 	if(ht == null || ht.get(e.getClass().toString()) == null){
-	    System.out.println("++++++++++++++++++++++++++++++++++++++++++" +  ht.get(e.getClass().toString()));
-	    
-
-
-	    System.out.println("++++++++++++++++++++++++++++++++++++++++++" +e);
-	    System.out.println("++++++++++++++++++++++++++++++++++++++++++" +e.getClass());
-
-	    return;
+		if (e instanceof CtCasePattern) {
+			getOperators((CtCasePattern) e, opKind);
+			number += opKind.size();
+			setEncodingArray(opKind.size());
+			return;
+		}
+		Assertions.UNREACHABLE("Cannot encode statement " + e.getClass().getName());
 	}
 
 	//System.out.println("No. " + e.getClass().toString() + " "+ e);
@@ -309,11 +318,12 @@ public class CompletePathEncoder extends Encoder<ControlFlowNode>{
 		number += opKind.size();
     }
     
-    private void setEncodingArray(int length){
+	private void setEncodingArray(int length){
 		encoding = new int[length];
+		int hashIndex = 0;
 		for(int i=0; i < encoding.length;i++){
 		   if(opKind.get(i) == Code.HASHVALUE)
-			   encoding[i] = hashNumber;
+			   encoding[i] = hashIndex < hashValues.size() ? hashValues.get(hashIndex++) : hashNumber;
 		   else
 			   encoding[i]= opKind.get(i).ordinal();
 		}
@@ -424,6 +434,15 @@ public class CompletePathEncoder extends Encoder<ControlFlowNode>{
 		if(value == null) {
 			return;
 		}
+		if (value instanceof CtOperatorAssignment<?, ?>) {
+			CtOperatorAssignment<?, ?> assignment = (CtOperatorAssignment<?, ?>) value;
+			list.add(Code.ASSIGN);
+			getOperators(assignment.getAssigned(), list);
+			list.add(binaryOperatorToCode(assignment.getKind()));
+			getOperators(assignment.getAssigned(), list);
+			getOperators(assignment.getAssignment(), list);
+			return;
+		}
 		if(value instanceof CtAssignment){
 			list.add(Code.ASSIGN);
 			CtAssignment assign  = ((CtAssignment) value);
@@ -491,14 +510,7 @@ public class CompletePathEncoder extends Encoder<ControlFlowNode>{
 					}
 
 					functionNames.add(method);
-					Integer number = DominatorTree.methodTable.get(method);
-
-					if (number == null ){
-						number = DominatorTree.hashCounter++;
-						DominatorTree.methodTable.put(method, number);
-					}
-
-					hashNumber = number;
+					hashNumber = DominatorTree.methodCode(method);
 				}
 				list.add(numberToCode(inv.getArguments().size()));
 				if (functionParameters) {
@@ -523,13 +535,9 @@ public class CompletePathEncoder extends Encoder<ControlFlowNode>{
 					else
 						method = inv.getExecutable().toString().split("\\(")[0];
 
-					Integer number = DominatorTree.methodTable.get(method);
-					if (number == null ){
-						number = DominatorTree.hashCounter++;
-						DominatorTree.methodTable.put(method, number);
-					}
+					int number = DominatorTree.methodCode(method);
 					functionNames.add(method);
-					hashNumber = number;
+					hashValues.add(number);
 				}
 				list.add(numberToCode(inv.getArguments().size()));
 				for(CtExpression m: (List<CtExpression>)inv.getArguments())
@@ -541,20 +549,20 @@ public class CompletePathEncoder extends Encoder<ControlFlowNode>{
 			if (newCode){
 				list.add(Code.NEW);
 			}
-			list.add(numberToCode(((CtConstructorCall)value).getArguments().size()));
+			CtConstructorCall<?> constructorCall = (CtConstructorCall<?>) value;
+			list.add(numberToCode(constructorCall.getArguments().size()));
+			if (functionParameters) {
+				for (CtExpression<?> argument : constructorCall.getArguments()) {
+					getOperators(argument, list);
+				}
+			}
 
 			// add <init> method as constructor is called
 			//list.add(Code.HASHVALUE);
 			String method = "<init>";
 			functionNames.add(method);
 			if (encodeAsInRegistercode){
-				Integer number = DominatorTree.methodTable.get(method);
-
-				if (number == null ){
-					number = DominatorTree.hashCounter++;
-					DominatorTree.methodTable.put(method, number);
-				}
-				hashNumber = number;
+				hashNumber = DominatorTree.methodCode(method);
 			}
 			return;
 
@@ -583,9 +591,83 @@ public class CompletePathEncoder extends Encoder<ControlFlowNode>{
 			list.add(unaryOperatorToCode(((CtUnaryOperator)value).getKind()));
 			getOperators(((CtUnaryOperator)value).getOperand(),list);
 			return;
+		} else if (value instanceof CtLambda) {
+			CtLambda<?> lambda = (CtLambda<?>) value;
+			list.add(Code.EXPR);
+			list.add(numberToCode(lambda.getParameters().size()));
+			getOperators(lambda.getExpression(), list);
+			getStatementOperators(lambda.getBody(), list);
+			return;
+		} else if (value instanceof CtExecutableReferenceExpression) {
+			CtExecutableReferenceExpression<?, ?> reference =
+					(CtExecutableReferenceExpression<?, ?>) value;
+			list.add(encodeAsInRegistercode ? Code.SPECIALCALL : Code.CALL);
+			if (Environment.SUPPORTCALLNAMES) {
+				String method = methodReferenceIdentity(reference);
+				functionNames.add(methodReferenceName(reference));
+				int methodHash = DominatorTree.methodCode(method);
+				if (encodeAsInRegistercode) {
+					hashNumber = methodHash;
+				} else {
+					list.add(Code.HASHVALUE);
+					hashValues.add(methodHash);
+				}
+			}
+			list.add(numberToCode(reference.getExecutable().getParameters().size()));
+			getOperators(reference.getTarget(), list);
+			return;
+		} else if (value instanceof CtTypePattern) {
+			list.add(Code.TYPE);
+			return;
+		} else if (value instanceof CtCasePattern) {
+			list.add(Code.TYPE);
+			CtPattern pattern = ((CtCasePattern) value).getPattern();
+			if (pattern instanceof CtExpression) {
+				getOperators((CtExpression<?>) pattern, list);
+			}
+			return;
+		} else if (value instanceof CtRecordPattern) {
+			list.add(Code.TYPE);
+			for (CtPattern pattern : ((CtRecordPattern) value).getPatternList()) {
+				if (pattern instanceof CtExpression) {
+					getOperators((CtExpression<?>) pattern, list);
+				}
+			}
+			return;
+		} else if (value instanceof CtUnnamedPattern) {
+			list.add(Code.VAR);
+			return;
+		} else if (value instanceof CtSwitchExpression) {
+			CtSwitchExpression<?, ?> switchExpression = (CtSwitchExpression<?, ?>) value;
+			list.add(Code.SWITCH);
+			getOperators(switchExpression.getSelector(), list);
+			for (CtCase<?> switchCase : switchExpression.getCases()) {
+				for (CtExpression<?> caseExpression : switchCase.getCaseExpressions()) {
+					getOperators(caseExpression, list);
+				}
+				getOperators(switchCase.getGuard(), list);
+				for (CtStatement statement : switchCase.getStatements()) {
+					getStatementOperators(statement, list);
+				}
+			}
+			return;
 		}
-		Assertions.UNREACHABLE("Cannot find operator");
+		Assertions.UNREACHABLE("Cannot find operator " + value.getClass().getName());
     }
+
+	private void getStatementOperators(CtStatement statement, List<Code> list) {
+		new StatementOperatorScanner(list, constants) {
+			@Override
+			protected void encodeExpression(CtExpression<?> expression) {
+				getOperators(expression, list);
+			}
+
+			@Override
+			protected void encodeOperatorAssignment(CtOperatorAssignment<?, ?> assignment) {
+				getOperators(assignment, list);
+			}
+		}.scanStatement(statement);
+	}
     
     public boolean isPathInDescriptionSet(List<Encoder> path, List<List<Encoder>> set,
 				   MetricKind metric, boolean relativ, float threshold){

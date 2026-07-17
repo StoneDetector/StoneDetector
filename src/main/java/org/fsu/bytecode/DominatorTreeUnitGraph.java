@@ -266,7 +266,7 @@ public class DominatorTreeUnitGraph {
         try {
             //System.out.println(System.getProperty("user.dir"));
             BufferedInputStream bi = new BufferedInputStream(new FileInputStream(name+DotGraph.DOT_EXTENSION));
-            g = Parser.read(bi);
+            g = new Parser().read(bi);
             Graphviz.fromGraph(g).render(Format.PNG).toFile(new File(name+".png"));
         } catch (IOException e) {
             e.printStackTrace();

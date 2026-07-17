@@ -1,10 +1,10 @@
-FROM gradle:6.3.0-jdk11 AS build
+FROM gradle:9.1.0-jdk17 AS build
 
 COPY --chown=gradle:gradle . /home/gradle/src
 
 WORKDIR /home/gradle/src
 RUN rm -rf build
-RUN gradle jar --no-daemon
+RUN ./gradlew jar --no-daemon
 
 RUN git clone https://github.com/jeffsvajlenko/BigCloneEval
 RUN wget https://gitlab.com/t.heinze/bigcloneevaldata/-/raw/main/BigCloneBench_BCEvalVersion.tar.gz
@@ -15,7 +15,7 @@ RUN cp src/util/Version.java.template src/util/Version.java
 RUN mkdir -p bin/
 RUN javac -d bin/ -cp src/:libs/* src/**/*.java
 
-FROM openjdk:11-jre-slim
+FROM eclipse-temurin:17-jre
 
 RUN mkdir /StoneDetector
 RUN mkdir /StoneDetector/test

@@ -430,7 +430,7 @@ public class ByteCodePathExtraction {
         try {
             //System.out.println(System.getProperty("user.dir"));
             BufferedInputStream bi = new BufferedInputStream(new FileInputStream(name+DotGraph.DOT_EXTENSION));
-            g = Parser.read(bi);
+            g = new Parser().read(bi);
             Graphviz.fromGraph(g).render(Format.PNG).toFile(new File(name+".png"));
         } catch (IOException e) {
             e.printStackTrace();
@@ -446,7 +446,7 @@ public class ByteCodePathExtraction {
                 t=tag;
                 if (t instanceof VisibilityAnnotationTag) {
                     VisibilityAnnotationTag visibilityAnnotationTag = (VisibilityAnnotationTag) t;
-                    ArrayList<AnnotationTag> annotationTagArrayList = visibilityAnnotationTag.getAnnotations();
+                    List<AnnotationTag> annotationTagArrayList = visibilityAnnotationTag.getAnnotations();
                     if (annotationTagArrayList.size() == 1) {
                         AnnotationTag annotationTag = annotationTagArrayList.get(0);
                         String type = annotationTag.getType();

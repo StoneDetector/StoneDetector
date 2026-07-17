@@ -65,6 +65,7 @@ import spoon.reflect.code.CtSwitch;
 import spoon.reflect.code.CtSwitchExpression;
 import spoon.reflect.code.CtSynchronized;
 import spoon.reflect.code.CtThisAccess;
+import spoon.reflect.code.CtTextBlock;
 import spoon.reflect.code.CtThrow;
 import spoon.reflect.code.CtTry;
 import spoon.reflect.code.CtTryWithResource;
@@ -74,6 +75,10 @@ import spoon.reflect.code.CtVariableRead;
 import spoon.reflect.code.CtVariableWrite;
 import spoon.reflect.code.CtWhile;
 import spoon.reflect.code.CtYieldStatement;
+import spoon.reflect.code.CtCasePattern;
+import spoon.reflect.code.CtRecordPattern;
+import spoon.reflect.code.CtTypePattern;
+import spoon.reflect.code.CtUnnamedPattern;
 import spoon.reflect.declaration.CtAnnotation;
 import spoon.reflect.declaration.CtAnnotationMethod;
 import spoon.reflect.declaration.CtAnnotationType;
@@ -88,6 +93,9 @@ import spoon.reflect.declaration.CtField;
 import spoon.reflect.declaration.CtImport;
 import spoon.reflect.declaration.CtInterface;
 import spoon.reflect.declaration.CtMethod;
+import spoon.reflect.declaration.CtReceiverParameter;
+import spoon.reflect.declaration.CtRecord;
+import spoon.reflect.declaration.CtRecordComponent;
 import spoon.reflect.declaration.CtModule;
 import spoon.reflect.declaration.CtModuleRequirement;
 import spoon.reflect.declaration.CtPackage;
@@ -525,7 +533,9 @@ public class ControlFlowBuilder implements CtVisitor {
 		tryAddEdge(branch, convergenceNodeOut);
 
 		lastNode = convergenceNode;
-		doLoop.getBody().accept(this);
+		if (doLoop.getBody() != null) {
+			doLoop.getBody().accept(this);
+		}
 		tryAddEdge(lastNode, branch);
 
 		lastNode = convergenceNodeOut;
@@ -637,7 +647,9 @@ public class ControlFlowBuilder implements CtVisitor {
 
 		//Body
 		lastNode = branch;
-		foreach.getBody().accept(this);
+		if (foreach.getBody() != null) {
+			foreach.getBody().accept(this);
+		}
 
 		tryAddEdge(lastNode, branch, true, false);
 
@@ -1061,6 +1073,46 @@ public class ControlFlowBuilder implements CtVisitor {
 
 	@Override
 	public void visitCtYieldStatement(CtYieldStatement ctYieldStatement) {
+
+	}
+
+	@Override
+	public void visitCtTypePattern(CtTypePattern pattern) {
+
+	}
+
+	@Override
+	public void visitCtRecord(CtRecord record) {
+
+	}
+
+	@Override
+	public void visitCtRecordComponent(CtRecordComponent component) {
+
+	}
+
+	@Override
+	public void visitCtCasePattern(CtCasePattern pattern) {
+
+	}
+
+	@Override
+	public void visitCtRecordPattern(CtRecordPattern pattern) {
+
+	}
+
+	@Override
+	public void visitCtReceiverParameter(CtReceiverParameter parameter) {
+
+	}
+
+	@Override
+	public void visitCtUnnamedPattern(CtUnnamedPattern pattern) {
+
+	}
+
+	@Override
+	public void visitCtTextBlock(CtTextBlock textBlock) {
 
 	}
 

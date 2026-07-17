@@ -4,11 +4,11 @@ If you just want to try out StoneDetector, you can also have a look at the tool'
 
 ## StoneDetector Quick Start
 * Adjust StoneDetector's configuration file under `config/default.properties`
-* Build StoneDetector using gradle (requires at least JDK11)
+* Build StoneDetector using the Gradle wrapper (requires at least JDK 17)
 ```
 ./gradlew jar
 ```
-* Run StoneDetector (requires at least JRE11)
+* Run StoneDetector (requires at least JRE 17)
 ```
 java -Xms8G -Xmx8G -jar build/libs/StoneDetector.jar -x --directory="path/to/Java/Folder" --error-file=errors.txt 
 ```
@@ -70,12 +70,38 @@ where StoneDetector will look for code clones in directory `path/to/Java/Folder`
 StoneDetector prints detected code clones by default onto the screen. Each line specifies a single clone pair using the format `directory1,filename1,startline1,endline1,directory2,filename2,startline2,endline2`, where `directory1,filename1,startline1,endline1` specifies the location of the one code fragment and `directory2,filename2,startline2,endline2` specifies the location of the other code fragment. Note that the order of the code fragments in the clone pair is not significant.
 For example, `test,Example.java,4,18,test,Example.java,19,33` denotes the clone pair which is formed by the two code fragments between lines 4 to 18 and lines 19 to 33, respectively, in file `test/Example.java`.
 
+Clone output is sorted deterministically. If parsing, control-flow construction, or path encoding is incomplete, StoneDetector writes the available diagnostics to `--error-file`, emits no partial clone result, and exits with status 2.
+
+### Project classpaths and source sets
+
+By default, StoneDetector scans every Java file below `--directory` independently in Spoon's no-classpath mode. For a built project whose source needs project types to parse correctly, pass the compiled classpath explicitly instead of making StoneDetector invoke or guess a build system:
+
+```text
+java -jar build/libs/StoneDetector.jar \
+  --directory=/path/to/project \
+  --source-file-list=/path/to/module.sources \
+  --classpath-file=/path/to/module.compile-classpath \
+  --error-file=errors.txt
+```
+
+`--source-root` is repeatable and selects the source directories for one source set; relative roots are resolved below `--directory`. Roots are resolved to their real filesystem location and must remain within the real working tree. When the option is omitted, StoneDetector scans `--directory` as before. Overlapping or aliased roots do not analyze the same file twice.
+
+`--source-file-list` is an optional UTF-8 manifest containing one Java source per nonblank line. It is an authoritative alternative to recursive `--source-root` discovery and cannot be combined with `--source-root`. Relative entries are resolved below `--directory`; absolute entries are accepted only when their real paths remain within that working tree. StoneDetector validates the complete manifest before analysis, rejects missing, unreadable, non-Java, malformed, or escaping entries, deduplicates aliases by real file identity, and analyzes the selected files in deterministic normalized order. This lets build tools provide an exact source set without teaching StoneDetector about a build system or forcing intentionally invalid compiler fixtures into clone analysis.
+
+`--classpath-file` is an optional UTF-8 file with one compiled classpath entry per nonblank line. Relative entries are resolved from the classpath file's directory. Entries must already exist as directories or files. StoneDetector passes them directly to Spoon and preserves per-file analysis; it does not run Maven, Gradle, `javac`, or dependency discovery. Include the source set's compiled output when its own compiled types are needed. Invoke StoneDetector separately for source sets or modules that require different classpaths.
+
+`--analysis-threads` sets the maximum number of source files whose Spoon models may be analyzed concurrently. It must be a positive integer and defaults to `THREADSIZE`. Use `--analysis-threads=1` to avoid concurrent source-model memory use on constrained machines or compiler-intensive corpora. Source assignment is deterministic, failures are not retried, and this option does not change clone-comparison parallelism.
+
+A classpath is not a Java module path. StoneDetector therefore parses `module-info.java` descriptors in no-classpath mode even when `--classpath-file` is present. Module descriptors remain syntax-checked and counted, but they contain no methods for clone extraction.
+
+Without `--classpath-file`, the existing no-classpath behavior remains available. In either mode, an incomplete parse or analysis remains a failure rather than producing partial clone output.
+
 ### Configuration
 
 The StoneDetector tool provides various configuration parameters, which allow you to play with its code clone detection capabilities. The tool's configuration parameters are defined in the file `config/default.properties`.
 | Parameter | Default | Description |
 | --------- | ------- | ----------- |
-| THREADSIZE | 3 |Number of parallel threads which are used for code clone detection |
+| THREADSIZE | 3 |Default number of parallel source-analysis workers and number of code-clone comparison workers |
 | MINFUNCTIONSIZE | 15 |Minimal length of code lines for a code fragment to be considered |
 | THRESHOLD | 0.3f |The threshold value used for comparing description sets (max difference) |
 | SPLITTING | false |Whether or not split nodes are used in description sets (detection of subclones/blocks) |
@@ -91,7 +117,11 @@ The StoneDetector tool provides various configuration parameters, which allow yo
 
 ### Building
 
-StoneDetector is written in Java and can be built using [Gradle](https://gradle.org). StoneDetector requires at least Java 11. We recommend using StoneDetector with Java JDK11 and Gradle 6.3.0. To build the tool, simply run:
+StoneDetector is written in Java and can be built using the included [Gradle](https://gradle.org) wrapper. StoneDetector requires at least Java 17.
+
+Source analysis uses Java 25 language compliance. The end-to-end regression suite covers modern syntax through Java 25, including records and sealed types, text blocks, pattern matching and guarded switch expressions, record and unnamed patterns, module imports, compact source files, flexible constructor bodies, Markdown documentation comments, and primitive patterns. Support means that these sources complete StoneDetector's AST, control-flow, dominator-tree, and path-encoding pipeline; clone encodings continue to normalize syntax according to StoneDetector's structural model rather than preserving every source-level distinction.
+
+To build the tool, run:
 ```
 ./gradlew jar
 ```

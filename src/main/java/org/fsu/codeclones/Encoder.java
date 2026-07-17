@@ -6,6 +6,35 @@ import java.util.Iterator;
 import com.ibm.wala.util.collections.Iterator2Iterable;
 import com.ibm.wala.util.debug.Assertions;
 import fr.inria.controlflow.ControlFlowNode;
+import spoon.reflect.code.CtAssert;
+import spoon.reflect.code.CtBreak;
+import spoon.reflect.code.CtCatch;
+import spoon.reflect.code.CtContinue;
+import spoon.reflect.code.CtDo;
+import spoon.reflect.code.CtExpression;
+import spoon.reflect.code.CtExecutableReferenceExpression;
+import spoon.reflect.code.CtFor;
+import spoon.reflect.code.CtForEach;
+import spoon.reflect.code.CtIf;
+import spoon.reflect.code.CtLocalVariable;
+import spoon.reflect.code.CtOperatorAssignment;
+import spoon.reflect.code.CtReturn;
+import spoon.reflect.code.CtStatement;
+import spoon.reflect.code.CtSwitch;
+import spoon.reflect.code.CtSynchronized;
+import spoon.reflect.code.CtThrow;
+import spoon.reflect.code.CtTry;
+import spoon.reflect.code.CtTryWithResource;
+import spoon.reflect.code.CtWhile;
+import spoon.reflect.declaration.CtElement;
+import spoon.reflect.declaration.CtAnnotationType;
+import spoon.reflect.declaration.CtClass;
+import spoon.reflect.declaration.CtEnum;
+import spoon.reflect.declaration.CtInterface;
+import spoon.reflect.declaration.CtRecord;
+import spoon.reflect.path.CtRole;
+import spoon.reflect.visitor.CtScanner;
+import spoon.reflect.reference.CtTypeReference;
 
 public abstract class Encoder<T>{
 
@@ -27,6 +56,210 @@ public abstract class Encoder<T>{
                                     //             encoding of a path => when using euclidean metrics
     
     public abstract int getNumberOfEncodings(); // returns the number code elements from root to the node, that invokes the method
+
+    protected abstract static class StatementOperatorScanner extends CtScanner {
+        private final List<Code> codes;
+        private final boolean encodeVariableMarkers;
+
+        protected StatementOperatorScanner(List<Code> codes, boolean encodeVariableMarkers) {
+            this.codes = codes;
+            this.encodeVariableMarkers = encodeVariableMarkers;
+        }
+
+        protected abstract void encodeExpression(CtExpression<?> expression);
+
+        protected abstract void encodeOperatorAssignment(CtOperatorAssignment<?, ?> assignment);
+
+        @Override
+        public void scan(CtRole role, CtElement element) {
+            if (role == CtRole.ANNOTATION) {
+                return;
+            }
+            if (element instanceof CtOperatorAssignment<?, ?>) {
+                encodeOperatorAssignment((CtOperatorAssignment<?, ?>) element);
+                return;
+            }
+            if (element instanceof CtExpression<?>) {
+                encodeExpression((CtExpression<?>) element);
+                return;
+            }
+            super.scan(role, element);
+        }
+
+        @Override
+        public <T> void visitCtLocalVariable(CtLocalVariable<T> localVariable) {
+            if (localVariable.getDefaultExpression() != null) {
+                codes.add(Code.ASSIGN);
+            } else if (encodeVariableMarkers) {
+                codes.add(Code.VAR);
+            }
+            super.visitCtLocalVariable(localVariable);
+        }
+
+        @Override
+        public void visitCtIf(CtIf ifStatement) {
+            codes.add(Code.COND);
+            super.visitCtIf(ifStatement);
+        }
+
+        @Override
+        public void visitCtFor(CtFor forLoop) {
+            codes.add(Code.COND);
+            super.visitCtFor(forLoop);
+        }
+
+        @Override
+        public void visitCtForEach(CtForEach forEachLoop) {
+            codes.add(Code.COND);
+            super.visitCtForEach(forEachLoop);
+        }
+
+        @Override
+        public void visitCtWhile(CtWhile whileLoop) {
+            codes.add(Code.COND);
+            super.visitCtWhile(whileLoop);
+        }
+
+        @Override
+        public void visitCtDo(CtDo doLoop) {
+            codes.add(Code.COND);
+            super.visitCtDo(doLoop);
+        }
+
+        @Override
+        public void visitCtTry(CtTry tryStatement) {
+            codes.add(Code.TRY);
+            if (tryStatement.getFinalizer() != null) {
+                codes.add(Code.FINALLY);
+            }
+            super.visitCtTry(tryStatement);
+        }
+
+        @Override
+        public void visitCtTryWithResource(CtTryWithResource tryStatement) {
+            codes.add(Code.TRY);
+            if (tryStatement.getFinalizer() != null) {
+                codes.add(Code.FINALLY);
+            }
+            super.visitCtTryWithResource(tryStatement);
+        }
+
+        @Override
+        public void visitCtCatch(CtCatch catchBlock) {
+            codes.add(Code.CATCH);
+            super.visitCtCatch(catchBlock);
+        }
+
+        @Override
+        public void visitCtSynchronized(CtSynchronized synchronizedStatement) {
+            codes.add(Code.MONITOR);
+            super.visitCtSynchronized(synchronizedStatement);
+        }
+
+        @Override
+        public <T> void visitCtAssert(CtAssert<T> asserted) {
+            codes.add(Code.ASSERT);
+            super.visitCtAssert(asserted);
+        }
+
+        @Override
+        public <R> void visitCtReturn(CtReturn<R> returned) {
+            codes.add(Code.RETURN);
+            if (returned.getReturnedExpression() == null) {
+                codes.add(Code.VOID);
+            }
+            super.visitCtReturn(returned);
+        }
+
+        @Override
+        public void visitCtThrow(CtThrow thrown) {
+            codes.add(Code.THROW);
+            super.visitCtThrow(thrown);
+        }
+
+        @Override
+        public void visitCtBreak(CtBreak breakStatement) {
+            codes.add(Code.BREAK);
+            super.visitCtBreak(breakStatement);
+        }
+
+        @Override
+        public void visitCtContinue(CtContinue continueStatement) {
+            codes.add(Code.CONTINUE);
+            super.visitCtContinue(continueStatement);
+        }
+
+        @Override
+        public <T> void visitCtClass(CtClass<T> declaredType) {
+            codes.add(Code.CLASSDEFINITION);
+        }
+
+        @Override
+        public <T> void visitCtInterface(CtInterface<T> declaredType) {
+            codes.add(Code.CLASSDEFINITION);
+        }
+
+        @Override
+        public <T extends Enum<?>> void visitCtEnum(CtEnum<T> declaredType) {
+            codes.add(Code.CLASSDEFINITION);
+        }
+
+        @Override
+        public <T extends java.lang.annotation.Annotation> void visitCtAnnotationType(
+                CtAnnotationType<T> declaredType) {
+            codes.add(Code.CLASSDEFINITION);
+        }
+
+        @Override
+        public void visitCtRecord(CtRecord declaredType) {
+            codes.add(Code.CLASSDEFINITION);
+        }
+
+        @Override
+        public <S> void visitCtSwitch(CtSwitch<S> switchStatement) {
+            codes.add(Code.SWITCH);
+            super.visitCtSwitch(switchStatement);
+        }
+
+        protected final void scanStatement(CtStatement statement) {
+            if (statement instanceof CtOperatorAssignment<?, ?>) {
+                encodeOperatorAssignment((CtOperatorAssignment<?, ?>) statement);
+            } else if (statement instanceof CtExpression<?>) {
+                encodeExpression((CtExpression<?>) statement);
+            } else if (statement != null) {
+                scan(statement);
+            }
+        }
+    }
+
+    protected static String methodReferenceIdentity(
+            CtExecutableReferenceExpression<?, ?> reference) {
+        String name = methodReferenceName(reference);
+        CtTypeReference<?> declaringType = reference.getExecutable().getDeclaringType();
+        StringBuilder identity = new StringBuilder();
+        if (declaringType != null) {
+            identity.append(declaringType.getQualifiedName()).append('#');
+        }
+        identity.append(name).append('(');
+        boolean first = true;
+        for (CtTypeReference<?> parameter : reference.getExecutable().getParameters()) {
+            if (!first) {
+                identity.append(',');
+            }
+            identity.append(parameter.getQualifiedName());
+            first = false;
+        }
+        return identity.append(')').toString();
+    }
+
+    protected static String methodReferenceName(
+            CtExecutableReferenceExpression<?, ?> reference) {
+        String name = reference.getExecutable().getSimpleName();
+        if (Environment.STUBBERPROCESSING && name.contains("_")) {
+            name = name.substring(0, name.lastIndexOf('_'));
+        }
+        return name;
+    }
     
     static{
 	ht.put("class spoon.support.reflect.code.CtArrayAccessImpl",1);
@@ -61,6 +294,7 @@ public abstract class Encoder<T>{
 	ht.put("class spoon.support.reflect.code.CtJavaDocTagImpl",30);
 	ht.put("class spoon.support.reflect.code.CtLambdaImpl",31);
 	ht.put("class spoon.support.reflect.code.CtLiteralImpl",32);
+	ht.put("class spoon.support.reflect.code.CtTextBlockImpl",32);
 	ht.put("class spoon.support.reflect.code.CtLocalVariableImpl",33);
 	ht.put("class spoon.support.reflect.code.CtLoopImpl",34);
 	ht.put("class spoon.support.reflect.code.CtNewArrayImpl",35);
